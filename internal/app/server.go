@@ -24,8 +24,8 @@ func createShortUrlHandler(w http.ResponseWriter, r *http.Request) {
 
 	urlMap[HASH] = string(url)
 
-	w.Write([]byte(fmt.Sprintf("http://localhost:8080/%s", HASH)))
 	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(fmt.Sprintf("http://localhost:8080/%s", HASH)))
 }
 
 func resolveShortUrlHandler(w http.ResponseWriter, r *http.Request) {
