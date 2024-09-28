@@ -1,9 +1,14 @@
 package app
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 )
+
+const HASH = `EwHXdJfB`
+
+var urlMap = make(map[string]string)
 
 func createShortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -11,12 +16,15 @@ func createShortUrlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := io.ReadAll(r.Body)
+	url, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
+	urlMap[HASH] = string(url)
+
+	w.Write([]byte(fmt.Sprintf("http://localhost:8080/%s", HASH)))
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -27,12 +35,16 @@ func resolveShortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := r.PathValue(`id`)
-	if id == `` {
+	fmt.Println(id)
+
+	url, ok := urlMap[id]
+	if !ok {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
-	http.Redirect(w, r, `https://practicum.yandex.ru/`, http.StatusTemporaryRedirect)
+	fmt.Println(url)
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func StartServer(addr string) error {
