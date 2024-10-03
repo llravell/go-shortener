@@ -8,7 +8,7 @@ import (
 
 type urlStorage interface {
 	Save(hash string, url string)
-	Get(hash string) string
+	Get(hash string) (string, error)
 }
 
 type hashGenerator interface {
@@ -17,8 +17,9 @@ type hashGenerator interface {
 
 func SaveUrlHandler(s urlStorage, hg hashGenerator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		url, err := io.ReadAll(r.Body)
-		if err != nil {
+		res, err := io.ReadAll(r.Body)
+		url := string(res)
+		if err != nil || url == "" {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
@@ -35,8 +36,8 @@ func ResolveUrlHandler(s urlStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := r.PathValue(`id`)
 
-		url := s.Get(hash)
-		if url == "" {
+		url, err := s.Get(hash)
+		if err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
