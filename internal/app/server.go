@@ -3,21 +3,29 @@ package app
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/llravell/go-shortener/internal/handlers"
 	"github.com/llravell/go-shortener/internal/models"
 	"github.com/llravell/go-shortener/internal/storages"
 )
 
+func buildRouter(s handlers.UrlStorage, hg handlers.HashGenerator) chi.Router {
+	saveUrlHandler := handlers.SaveUrlHandler(s, hg)
+	resolveUrlHandler := handlers.ResolveUrlHandler(s)
+
+	r := chi.NewRouter()
+
+	r.Get("/{id}", resolveUrlHandler)
+	r.Post("/", saveUrlHandler)
+
+	return r
+}
+
 func StartServer(addr string) error {
-	mux := http.NewServeMux()
 	us := storages.NewUrlStorage()
 	rsg := models.NewRandomStringGenerator()
 
-	saveUrlHandler := handlers.SaveUrlHandler(us, rsg)
-	resolveUrlHandler := handlers.ResolveUrlHandler(us)
+	r := buildRouter(us, rsg)
 
-	mux.HandleFunc(`GET /{id}`, resolveUrlHandler)
-	mux.HandleFunc(`POST /`, saveUrlHandler)
-
-	return http.ListenAndServe(addr, mux)
+	return http.ListenAndServe(addr, r)
 }
