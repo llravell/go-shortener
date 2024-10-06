@@ -9,20 +9,20 @@ import (
 	"github.com/llravell/go-shortener/internal/storages"
 )
 
-func buildRouter(s handlers.UrlStorage, hg handlers.HashGenerator) chi.Router {
-	saveUrlHandler := handlers.SaveUrlHandler(s, hg)
-	resolveUrlHandler := handlers.ResolveUrlHandler(s)
+func buildRouter(s handlers.URLStorage, hg handlers.HashGenerator) chi.Router {
+	saveURLHandler := handlers.SaveURLHandler(s, hg)
+	resolveURLHandler := handlers.ResolveURLHandler(s)
 
 	r := chi.NewRouter()
 
-	r.Get("/{id}", resolveUrlHandler)
-	r.Post("/", saveUrlHandler)
+	r.Get("/{id}", resolveURLHandler)
+	r.Post("/", saveURLHandler)
 
 	return r
 }
 
 func StartServer(addr string) error {
-	us := storages.NewUrlStorage()
+	us := storages.NewURLStorage()
 	rsg := models.NewRandomStringGenerator()
 
 	r := buildRouter(us, rsg)

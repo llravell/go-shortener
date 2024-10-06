@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type UrlStorage interface {
+type URLStorage interface {
 	Save(hash string, url string)
 	Get(hash string) (string, error)
 }
@@ -15,7 +15,7 @@ type HashGenerator interface {
 	Generate(len int) string
 }
 
-func SaveUrlHandler(s UrlStorage, hg HashGenerator) http.HandlerFunc {
+func SaveURLHandler(s URLStorage, hg HashGenerator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, err := io.ReadAll(r.Body)
 		url := string(res)
@@ -32,7 +32,7 @@ func SaveUrlHandler(s UrlStorage, hg HashGenerator) http.HandlerFunc {
 	}
 }
 
-func ResolveUrlHandler(s UrlStorage) http.HandlerFunc {
+func ResolveURLHandler(s URLStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := r.PathValue(`id`)
 
