@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ type HashGenerator interface {
 	Generate(len int) string
 }
 
-func SaveUrlHandler(s UrlStorage, hg HashGenerator) http.HandlerFunc {
+func saveUrlHandler(s UrlStorage, hg HashGenerator, baseAddr string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, err := io.ReadAll(r.Body)
 		url := string(res)
@@ -28,11 +28,11 @@ func SaveUrlHandler(s UrlStorage, hg HashGenerator) http.HandlerFunc {
 		s.Save(hash, string(url))
 
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(fmt.Sprintf("http://localhost:8080/%s", hash)))
+		w.Write([]byte(fmt.Sprintf("%s/%s", baseAddr, hash)))
 	}
 }
 
-func ResolveUrlHandler(s UrlStorage) http.HandlerFunc {
+func resolveUrlHandler(s UrlStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := r.PathValue(`id`)
 

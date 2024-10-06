@@ -1,4 +1,4 @@
-package app
+package api
 
 import (
 	"errors"
@@ -15,6 +15,7 @@ import (
 
 const HASH = "ABC"
 const URL = "https://example.ru/"
+const BASE_REDIRECT_URL = "http://localhost:8080"
 
 type MockHashGenerator struct{}
 
@@ -56,7 +57,7 @@ func TestBuildRouter(t *testing.T) {
 		HASH: URL,
 	}}
 
-	ts := httptest.NewServer(buildRouter(s, gen))
+	ts := httptest.NewServer(BuildRouter(s, gen, BASE_REDIRECT_URL))
 	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -76,7 +77,7 @@ func TestBuildRouter(t *testing.T) {
 			path:         "/",
 			body:         strings.NewReader(URL),
 			expectedCode: http.StatusCreated,
-			expectedBody: fmt.Sprintf("http://localhost:8080/%s", HASH),
+			expectedBody: fmt.Sprintf("%s/%s", BASE_REDIRECT_URL, HASH),
 		},
 		{
 			name:         "Sending empty payload",
