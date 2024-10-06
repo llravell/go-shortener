@@ -1,25 +1,16 @@
 package config
 
-import "flag"
+const DefaultAddr = ":8080"
+const DefaultBaseAddr = "http://localhost:8080"
 
 type Config struct {
-	Addr     string
-	BaseAddr string
+	Addr     string `env:"SERVER_ADDRESS"`
+	BaseAddr string `env:"BASE_URL"`
 }
 
-type argsParser struct {
-	c *Config
-}
-
-func NewArgsParser(c *Config) argsParser {
-	p := argsParser{c}
-
-	flag.StringVar(&p.c.Addr, "a", ":8080", "Server address as host:port")
-	flag.StringVar(&p.c.BaseAddr, "b", "http://localhost:8080", "Base address for redirect as host:port")
-
-	return p
-}
-
-func (p argsParser) Parse() {
-	flag.Parse()
+func WithDefaultValues() *Config {
+	return &Config{
+		Addr:     DefaultAddr,
+		BaseAddr: DefaultBaseAddr,
+	}
 }
