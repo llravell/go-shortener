@@ -12,7 +12,7 @@ import (
 )
 
 func runServer(c *config.Config) error {
-	us := storages.NewUrlStorage()
+	us := storages.NewURLStorage()
 	rsg := models.NewRandomStringGenerator()
 
 	r := api.BuildRouter(us, rsg, c.BaseAddr)

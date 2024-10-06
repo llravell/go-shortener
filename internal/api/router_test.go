@@ -13,14 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const HASH = "ABC"
+const Hash = "ABC"
 const URL = "https://example.ru/"
-const BASE_REDIRECT_URL = "http://localhost:8080"
+const BaseRedirectURL = "http://localhost:8080"
 
 type MockHashGenerator struct{}
 
 func (g MockHashGenerator) Generate(n int) string {
-	return HASH
+	return Hash
 }
 
 type MockStorage struct {
@@ -54,10 +54,10 @@ func testRequest(t *testing.T, ts *httptest.Server, method string, path string, 
 func TestBuildRouter(t *testing.T) {
 	gen := MockHashGenerator{}
 	s := &MockStorage{map[string]string{
-		HASH: URL,
+		Hash: URL,
 	}}
 
-	ts := httptest.NewServer(BuildRouter(s, gen, BASE_REDIRECT_URL))
+	ts := httptest.NewServer(BuildRouter(s, gen, BaseRedirectURL))
 	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -77,7 +77,7 @@ func TestBuildRouter(t *testing.T) {
 			path:         "/",
 			body:         strings.NewReader(URL),
 			expectedCode: http.StatusCreated,
-			expectedBody: fmt.Sprintf("%s/%s", BASE_REDIRECT_URL, HASH),
+			expectedBody: fmt.Sprintf("%s/%s", BaseRedirectURL, Hash),
 		},
 		{
 			name:         "Sending empty payload",
@@ -88,7 +88,7 @@ func TestBuildRouter(t *testing.T) {
 		{
 			name:         "Redirect on url",
 			method:       http.MethodGet,
-			path:         "/" + HASH,
+			path:         "/" + Hash,
 			body:         nil,
 			expectedCode: http.StatusTemporaryRedirect,
 		},
