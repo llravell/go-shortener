@@ -14,6 +14,8 @@ type argsParser struct {
 	c *Config
 }
 
+var _ Parser = (*argsParser)(nil)
+
 func NewArgsParser(c *Config) argsParser {
 	p := argsParser{c}
 
@@ -32,6 +34,8 @@ type envParser struct {
 	c *Config
 }
 
+var _ Parser = (*envParser)(nil)
+
 func NewEnvParser(c *Config) envParser {
 	return envParser{c}
 }
@@ -43,6 +47,8 @@ func (p envParser) Parse() error {
 type unionParser struct {
 	parsers []Parser
 }
+
+var _ Parser = (*unionParser)(nil)
 
 func (up *unionParser) Parse() error {
 	for _, p := range up.parsers {
