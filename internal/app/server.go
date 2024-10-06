@@ -10,7 +10,7 @@ const HASH = `EwHXdJfB`
 
 var urlMap = make(map[string]string)
 
-func createShortUrlHandler(w http.ResponseWriter, r *http.Request) {
+func createShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -28,7 +28,7 @@ func createShortUrlHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("http://localhost:8080/%s", HASH)))
 }
 
-func resolveShortUrlHandler(w http.ResponseWriter, r *http.Request) {
+func resolveShortURLHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
@@ -50,8 +50,8 @@ func resolveShortUrlHandler(w http.ResponseWriter, r *http.Request) {
 func StartServer(addr string) error {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(`/{id}`, resolveShortUrlHandler)
-	mux.HandleFunc(`/`, createShortUrlHandler)
+	mux.HandleFunc(`/{id}`, resolveShortURLHandler)
+	mux.HandleFunc(`/`, createShortURLHandler)
 
 	return http.ListenAndServe(addr, mux)
 }
