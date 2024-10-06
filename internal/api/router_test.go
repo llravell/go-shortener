@@ -43,7 +43,6 @@ func testRequest(t *testing.T, ts *httptest.Server, method string, path string, 
 
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
-	defer res.Body.Close()
 
 	b, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
@@ -103,6 +102,7 @@ func TestBuildRouter(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			res, body := testRequest(t, ts, tc.method, tc.path, tc.body)
+			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
 			if tc.expectedBody != "" {
