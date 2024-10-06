@@ -12,13 +12,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const HASH = "ABC"
+const Hash = "ABC"
 const URL = "https://example.ru/"
 
 type MockHashGenerator struct{}
 
 func (g MockHashGenerator) Generate(n int) string {
-	return HASH
+	return Hash
 }
 
 type MockStorage struct {
@@ -34,7 +34,7 @@ func (g *MockStorage) Get(string) (string, error) {
 	return "", errors.New("Error")
 }
 
-func TestSaveUrlHandler(t *testing.T) {
+func TestSaveURLHandler(t *testing.T) {
 	testCases := []struct {
 		name         string
 		payload      string
@@ -45,7 +45,7 @@ func TestSaveUrlHandler(t *testing.T) {
 			name:         "Sending url",
 			payload:      "https://example.ru/",
 			expectedCode: http.StatusCreated,
-			expectedBody: fmt.Sprintf("http://localhost:8080/%s", HASH),
+			expectedBody: fmt.Sprintf("http://localhost:8080/%s", Hash),
 		},
 		{
 			name:         "Sending empty payload",
@@ -57,10 +57,10 @@ func TestSaveUrlHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			us := storages.NewUrlStorage()
+			us := storages.NewURLStorage()
 			gen := MockHashGenerator{}
 
-			handler := SaveUrlHandler(us, gen)
+			handler := SaveURLHandler(us, gen)
 			r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(tc.payload))
 			w := httptest.NewRecorder()
 
@@ -74,7 +74,7 @@ func TestSaveUrlHandler(t *testing.T) {
 	}
 }
 
-func TestResolveUrlHandler(t *testing.T) {
+func TestResolveURLHandler(t *testing.T) {
 	testCases := []struct {
 		name          string
 		hash          string
@@ -83,7 +83,7 @@ func TestResolveUrlHandler(t *testing.T) {
 	}{
 		{
 			name:          "Redirect on url",
-			hash:          HASH,
+			hash:          Hash,
 			storageResult: URL,
 			expectedCode:  http.StatusTemporaryRedirect,
 		},
@@ -99,7 +99,7 @@ func TestResolveUrlHandler(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			us := &MockStorage{tc.storageResult}
 
-			handler := ResolveUrlHandler(us)
+			handler := ResolveURLHandler(us)
 			r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/%s", tc.hash), nil)
 			w := httptest.NewRecorder()
 

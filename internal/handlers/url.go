@@ -15,7 +15,7 @@ type hashGenerator interface {
 	Generate(len int) string
 }
 
-func SaveUrlHandler(s urlStorage, hg hashGenerator) http.HandlerFunc {
+func SaveURLHandler(s urlStorage, hg hashGenerator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res, err := io.ReadAll(r.Body)
 		url := string(res)
@@ -32,7 +32,7 @@ func SaveUrlHandler(s urlStorage, hg hashGenerator) http.HandlerFunc {
 	}
 }
 
-func ResolveUrlHandler(s urlStorage) http.HandlerFunc {
+func ResolveURLHandler(s urlStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hash := r.PathValue(`id`)
 

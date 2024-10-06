@@ -10,14 +10,14 @@ import (
 
 func StartServer(addr string) error {
 	mux := http.NewServeMux()
-	us := storages.NewUrlStorage()
+	us := storages.NewURLStorage()
 	rsg := models.NewRandomStringGenerator()
 
-	saveUrlHandler := handlers.SaveUrlHandler(us, rsg)
-	resolveUrlHandler := handlers.ResolveUrlHandler(us)
+	saveURLHandler := handlers.SaveURLHandler(us, rsg)
+	resolveURLHandler := handlers.ResolveURLHandler(us)
 
-	mux.HandleFunc(`GET /{id}`, resolveUrlHandler)
-	mux.HandleFunc(`POST /`, saveUrlHandler)
+	mux.HandleFunc(`GET /{id}`, resolveURLHandler)
+	mux.HandleFunc(`POST /`, saveURLHandler)
 
 	return http.ListenAndServe(addr, mux)
 }

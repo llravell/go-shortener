@@ -8,15 +8,15 @@ type urlStorage struct {
 	m map[string]string
 }
 
-type UrlNotFoundError struct {
+type URLNotFoundError struct {
 	hash string
 }
 
-func (err *UrlNotFoundError) Error() string {
+func (err *URLNotFoundError) Error() string {
 	return fmt.Sprintf(`Not found url with hash "%s"`, err.hash)
 }
 
-func NewUrlStorage() *urlStorage {
+func NewURLStorage() *urlStorage {
 	return &urlStorage{make(map[string]string)}
 }
 
@@ -27,7 +27,7 @@ func (u *urlStorage) Save(hash string, url string) {
 func (u *urlStorage) Get(hash string) (string, error) {
 	url, ok := u.m[hash]
 	if !ok {
-		return "", &UrlNotFoundError{hash}
+		return "", &URLNotFoundError{hash}
 	}
 
 	return url, nil
