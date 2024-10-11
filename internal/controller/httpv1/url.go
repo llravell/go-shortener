@@ -17,11 +17,11 @@ type urlRoutes struct {
 func newURLRoutes(r chi.Router, u *usecase.URLUseCase, baseAddr string) {
 	routes := &urlRoutes{u, baseAddr}
 
-	r.Get("/{id}", routes.resolveUrl)
-	r.Post("/", routes.saveUrl)
+	r.Get("/{id}", routes.resolveURL)
+	r.Post("/", routes.saveURL)
 }
 
-func (ur *urlRoutes) saveUrl(w http.ResponseWriter, r *http.Request) {
+func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	res, err := io.ReadAll(r.Body)
 	url := string(res)
 	if err != nil || url == "" {
@@ -35,7 +35,7 @@ func (ur *urlRoutes) saveUrl(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, hash)))
 }
 
-func (ur *urlRoutes) resolveUrl(w http.ResponseWriter, r *http.Request) {
+func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	hash := r.PathValue(`id`)
 
 	url, err := ur.u.ResolveURL(hash)
