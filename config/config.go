@@ -24,7 +24,5 @@ func NewConfig() (*Config, error) {
 	flag.StringVar(&cfg.BaseAddr, "b", defaultBaseAddr, "Base address for redirect as host:port")
 	flag.Parse()
 
-	env.Parse(cfg)
-
-	return cfg, nil
+	return cfg, env.Parse(cfg)
 }

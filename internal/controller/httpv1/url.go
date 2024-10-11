@@ -32,7 +32,10 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	hash := ur.u.SaveURL(url)
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, hash)))
+	_, err = w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, hash)))
+	if err != nil {
+		fmt.Println("response write has failed")
+	}
 }
 
 func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
