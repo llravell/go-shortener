@@ -1,4 +1,4 @@
-package models
+package entity
 
 import (
 	"math/rand"
@@ -9,6 +9,8 @@ type randomStringGenerator struct {
 	r *rand.Rand
 }
 
+const hashLen = 10
+
 var letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func NewRandomStringGenerator() randomStringGenerator {
@@ -18,8 +20,8 @@ func NewRandomStringGenerator() randomStringGenerator {
 	return rsg
 }
 
-func (rsg randomStringGenerator) Generate(n int) string {
-	b := make([]byte, n)
+func (rsg randomStringGenerator) Generate(url string) string {
+	b := make([]byte, hashLen)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}

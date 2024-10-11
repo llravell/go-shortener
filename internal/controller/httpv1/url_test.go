@@ -1,4 +1,4 @@
-package api
+package httpv1
 
 import (
 	"errors"
@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,16 +21,16 @@ const BaseRedirectURL = "http://localhost:8080"
 
 type MockHashGenerator struct{}
 
-func (g MockHashGenerator) Generate(n int) string {
+func (g MockHashGenerator) Generate(url string) string {
 	return Hash
 }
 
-type MockStorage struct {
+type MockRepo struct {
 	m map[string]string
 }
 
-func (g *MockStorage) Save(string, string) {}
-func (g *MockStorage) Get(hash string) (string, error) {
+func (g *MockRepo) Store(string, string) {}
+func (g *MockRepo) Get(hash string) (string, error) {
 	v, ok := g.m[hash]
 	if !ok {
 		return "", errors.New("Not found")
@@ -50,13 +52,17 @@ func testRequest(t *testing.T, ts *httptest.Server, method string, path string, 
 	return res, string(b)
 }
 
-func TestBuildRouter(t *testing.T) {
+func TestURL(t *testing.T) {
 	gen := MockHashGenerator{}
-	s := &MockStorage{map[string]string{
+	s := &MockRepo{map[string]string{
 		Hash: URL,
 	}}
 
-	ts := httptest.NewServer(BuildRouter(s, gen, BaseRedirectURL))
+	urlUseCase := usecase.NewURLUseCase(s, gen)
+	router := chi.NewRouter()
+	newURLRoutes(router, urlUseCase, BaseRedirectURL)
+
+	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}

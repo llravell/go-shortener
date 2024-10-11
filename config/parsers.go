@@ -19,8 +19,8 @@ var _ Parser = (*argsParser)(nil)
 func NewArgsParser(c *Config) argsParser {
 	p := argsParser{c}
 
-	flag.StringVar(&p.c.Addr, "a", DefaultAddr, "Server address as host:port")
-	flag.StringVar(&p.c.BaseAddr, "b", DefaultBaseAddr, "Base address for redirect as host:port")
+	flag.StringVar(&p.c.Addr, "a", defaultAddr, "Server address as host:port")
+	flag.StringVar(&p.c.BaseAddr, "b", defaultBaseAddr, "Base address for redirect as host:port")
 
 	return p
 }
