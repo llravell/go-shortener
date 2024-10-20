@@ -1,7 +1,6 @@
 package app
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/llravell/go-shortener/config"
@@ -9,9 +8,12 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/llravell/go-shortener/internal/usecase/repo"
+	"github.com/llravell/go-shortener/logger"
 )
 
 func Run(cfg *config.Config) {
+	log := logger.Get()
+
 	urlUseCase := usecase.NewURLUseCase(
 		repo.NewURLStorage(),
 		entity.NewRandomStringGenerator(),
@@ -19,8 +21,17 @@ func Run(cfg *config.Config) {
 
 	router := httpv1.NewRouter(
 		urlUseCase,
+		log,
 		cfg.BaseAddr,
 	)
 
-	log.Fatal(http.ListenAndServe(cfg.Addr, router))
+	log.Info().
+		Str("addr", cfg.Addr).
+		Msgf("Starting shortener server on '%s'", cfg.Addr)
+
+	log.Fatal().
+		Err(http.ListenAndServe(cfg.Addr, router)).
+		Msg("Shortener server has been closed")
+
+	logger.Shutdown()
 }
