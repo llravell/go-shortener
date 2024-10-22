@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/llravell/go-shortener/internal/usecase"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,6 +19,8 @@ import (
 const Hash = "ABC"
 const URL = "https://example.ru/"
 const BaseRedirectURL = "http://localhost:8080"
+
+var redirectURL = fmt.Sprintf("%s/%s", BaseRedirectURL, Hash)
 
 type MockHashGenerator struct{}
 
@@ -60,7 +63,8 @@ func TestURL(t *testing.T) {
 
 	urlUseCase := usecase.NewURLUseCase(s, gen)
 	router := chi.NewRouter()
-	newURLRoutes(router, urlUseCase, BaseRedirectURL)
+	logger := zerolog.Nop()
+	newURLRoutes(router, urlUseCase, logger, BaseRedirectURL)
 
 	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -79,15 +83,15 @@ func TestURL(t *testing.T) {
 		{
 			name:         "Sending url",
 			method:       http.MethodPost,
-			path:         "/",
-			body:         strings.NewReader(URL),
+			path:         "/api/shorten",
+			body:         strings.NewReader(fmt.Sprintf(`{"url":"%s"}`, URL)),
 			expectedCode: http.StatusCreated,
-			expectedBody: fmt.Sprintf("%s/%s", BaseRedirectURL, Hash),
+			expectedBody: fmt.Sprintf("{\"result\":\"%s\"}\n", redirectURL),
 		},
 		{
 			name:         "Sending empty payload",
 			method:       http.MethodPost,
-			path:         "/",
+			path:         "/api/shorten",
 			expectedCode: http.StatusBadRequest,
 		},
 		{

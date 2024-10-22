@@ -1,40 +1,54 @@
 package httpv1
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/llravell/go-shortener/internal/usecase"
+	"github.com/rs/zerolog"
 )
 
 type urlRoutes struct {
 	u        *usecase.URLUseCase
+	log      zerolog.Logger
 	baseAddr string
 }
 
-func newURLRoutes(r chi.Router, u *usecase.URLUseCase, baseAddr string) {
-	routes := &urlRoutes{u, baseAddr}
+type saveURLRequest struct {
+	URL string `json:"url"`
+}
+
+type saveURLResponse struct {
+	Result string `json:"result"`
+}
+
+func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger, baseAddr string) {
+	routes := &urlRoutes{u, l, baseAddr}
 
 	r.Get("/{id}", routes.resolveURL)
-	r.Post("/", routes.saveURL)
+	r.Post("/api/shorten", routes.saveURL)
 }
 
 func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
-	res, err := io.ReadAll(r.Body)
-	url := string(res)
-	if err != nil || url == "" {
+	var urlReq saveURLRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&urlReq); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
-	hash := ur.u.SaveURL(url)
+	hash := ur.u.SaveURL(urlReq.URL)
 
+	resp := saveURLResponse{
+		Result: fmt.Sprintf("%s/%s", ur.baseAddr, hash),
+	}
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, hash)))
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(resp)
 	if err != nil {
-		fmt.Println("response write has failed")
+		ur.log.Err(err).Msg("response write has been failed")
 	}
 }
 

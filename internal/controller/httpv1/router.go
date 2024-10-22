@@ -12,7 +12,7 @@ func NewRouter(u *usecase.URLUseCase, l zerolog.Logger, baseAddr string) chi.Rou
 	r.Use(LoggerMiddleware(l))
 
 	r.Route("/", func(r chi.Router) {
-		newURLRoutes(r, u, baseAddr)
+		newURLRoutes(r, u, l, baseAddr)
 	})
 
 	return r
