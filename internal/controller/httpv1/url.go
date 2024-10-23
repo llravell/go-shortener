@@ -44,8 +44,8 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	resp := saveURLResponse{
 		Result: fmt.Sprintf("%s/%s", ur.baseAddr, hash),
 	}
-	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	err := json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
