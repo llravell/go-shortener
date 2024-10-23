@@ -81,6 +81,20 @@ func TestURL(t *testing.T) {
 		expectedBody string
 	}{
 		{
+			name:         "[legacy] sending url",
+			method:       http.MethodPost,
+			path:         "/",
+			body:         strings.NewReader(URL),
+			expectedCode: http.StatusCreated,
+			expectedBody: fmt.Sprintf("%s/%s", BaseRedirectURL, Hash),
+		},
+		{
+			name:         "[legacy] sending empty payload",
+			method:       http.MethodPost,
+			path:         "/",
+			expectedCode: http.StatusBadRequest,
+		},
+		{
 			name:         "Sending url",
 			method:       http.MethodPost,
 			path:         "/api/shorten",

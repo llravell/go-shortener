@@ -3,6 +3,7 @@ package httpv1
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -28,7 +29,28 @@ func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger, baseAdd
 	routes := &urlRoutes{u, l, baseAddr}
 
 	r.Get("/{id}", routes.resolveURL)
-	r.Post("/api/shorten", routes.saveURL)
+	r.Post("/", routes.saveURLLegacy)
+
+	r.Route("/api", func(r chi.Router) {
+		r.Post("/shorten", routes.saveURL)
+	})
+}
+
+func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
+	res, err := io.ReadAll(r.Body)
+	url := string(res)
+	if err != nil || url == "" {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	hash := ur.u.SaveURL(url)
+
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, hash)))
+	if err != nil {
+		ur.log.Err(err).Msg("response write has been failed")
+	}
 }
 
 func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
