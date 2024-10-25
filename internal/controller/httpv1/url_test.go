@@ -112,7 +112,6 @@ func TestURL(t *testing.T) {
 			name:         "Redirect on url",
 			method:       http.MethodGet,
 			path:         "/" + Hash,
-			body:         nil,
 			expectedCode: http.StatusTemporaryRedirect,
 		},
 		{

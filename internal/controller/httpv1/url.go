@@ -1,6 +1,7 @@
 package httpv1
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -57,9 +58,20 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
+	body := r.Body
+
+	if r.Header.Get("Content-Encoding") == "gzip" {
+		gz, err := gzip.NewReader(body)
+		if err != nil {
+			http.Error(w, "gzip decoding error", http.StatusInternalServerError)
+			return
+		}
+		body = gz
+	}
+
 	var urlReq saveURLRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&urlReq); err != nil {
+	if err := json.NewDecoder(body).Decode(&urlReq); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
@@ -85,6 +97,8 @@ func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
+
+	ur.log.Info().Str("url", url).Msg("redirect")
 
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
