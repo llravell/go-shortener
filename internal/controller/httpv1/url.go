@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/rs/zerolog"
 )
@@ -32,6 +33,8 @@ func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger, baseAdd
 	r.Post("/", routes.saveURLLegacy)
 
 	r.Route("/api", func(r chi.Router) {
+		r.Use(middleware.CompressMiddleware())
+
 		r.Post("/shorten", routes.saveURL)
 	})
 }

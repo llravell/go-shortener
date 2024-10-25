@@ -11,7 +11,6 @@ func NewRouter(u *usecase.URLUseCase, l zerolog.Logger, baseAddr string) chi.Rou
 	r := chi.NewRouter()
 
 	r.Use(middleware.LoggerMiddleware(l))
-	r.Use(middleware.CompressMiddleware())
 
 	newURLRoutes(r, u, l, baseAddr)
 
