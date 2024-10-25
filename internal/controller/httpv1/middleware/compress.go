@@ -10,6 +10,6 @@ import (
 func CompressMiddleware() func(next http.Handler) http.Handler {
 	return middleware.Compress(
 		flate.BestSpeed,
-		"text/html", "application/json",
+		"application/json",
 	)
 }
