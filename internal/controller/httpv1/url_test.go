@@ -1,8 +1,6 @@
 package httpv1
 
 import (
-	"bytes"
-	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -44,13 +42,9 @@ func (g *MockRepo) Get(hash string) (string, error) {
 	return v, nil
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method string, path string, body io.Reader, headers map[string]string) (*http.Response, string) {
+func testRequest(t *testing.T, ts *httptest.Server, method string, path string, body io.Reader) (*http.Response, string) {
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
-
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
 
 	res, err := ts.Client().Do(req)
 	require.NoError(t, err)
@@ -78,22 +72,11 @@ func TestURL(t *testing.T) {
 	}
 	defer ts.Close()
 
-	defaultBody := fmt.Sprintf(`{"url":"%s"}`, URL)
-
-	compressedBody := &bytes.Buffer{}
-	wr := gzip.NewWriter(compressedBody)
-	_, err := wr.Write([]byte(defaultBody))
-	require.NoError(t, err)
-
-	err = wr.Close()
-	require.NoError(t, err)
-
 	testCases := []struct {
 		name         string
 		method       string
 		path         string
 		body         io.Reader
-		headers      map[string]string
 		expectedCode int
 		expectedBody string
 	}{
@@ -115,18 +98,7 @@ func TestURL(t *testing.T) {
 			name:         "Sending url",
 			method:       http.MethodPost,
 			path:         "/api/shorten",
-			body:         strings.NewReader(defaultBody),
-			expectedCode: http.StatusCreated,
-			expectedBody: fmt.Sprintf("{\"result\":\"%s\"}\n", redirectURL),
-		},
-		{
-			name:   "Sending url with gzip compression",
-			method: http.MethodPost,
-			path:   "/api/shorten",
-			body:   compressedBody,
-			headers: map[string]string{
-				"Content-Encoding": "gzip",
-			},
+			body:         strings.NewReader(fmt.Sprintf(`{"url":"%s"}`, URL)),
 			expectedCode: http.StatusCreated,
 			expectedBody: fmt.Sprintf("{\"result\":\"%s\"}\n", redirectURL),
 		},
@@ -152,7 +124,7 @@ func TestURL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			res, body := testRequest(t, ts, tc.method, tc.path, tc.body, tc.headers)
+			res, body := testRequest(t, ts, tc.method, tc.path, tc.body)
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)

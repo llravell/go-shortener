@@ -1,12 +1,10 @@
 package httpv1
 
 import (
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
@@ -32,32 +30,18 @@ func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger, baseAdd
 	routes := &urlRoutes{u, l, baseAddr}
 
 	r.Get("/{id}", routes.resolveURL)
-	r.Post("/", routes.saveURLLegacy)
+	r.With(middleware.DecompressMiddleware()).Post("/", routes.saveURLLegacy)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(middleware.CompressMiddleware())
+		r.Use(middleware.DecompressMiddleware())
 
 		r.Post("/shorten", routes.saveURL)
 	})
 }
 
 func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
-	body := r.Body
-
-	contentEncoding := r.Header.Get("Content-Encoding")
-	sendsGzip := strings.Contains(contentEncoding, "gzip")
-	ur.log.Info().Str("encoding", contentEncoding).Msg("[legacy] url encoding check")
-
-	if sendsGzip {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, "gzip decoding error", http.StatusInternalServerError)
-			return
-		}
-		body = gz
-	}
-
-	res, err := io.ReadAll(body)
+	res, err := io.ReadAll(r.Body)
 	url := string(res)
 	if err != nil || url == "" {
 		http.Error(w, "Bad request", http.StatusBadRequest)
@@ -74,24 +58,9 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
-	body := r.Body
-
-	contentEncoding := r.Header.Get("Content-Encoding")
-	sendsGzip := strings.Contains(contentEncoding, "gzip")
-	ur.log.Info().Str("encoding", contentEncoding).Msg("url encoding check")
-
-	if sendsGzip {
-		gz, err := gzip.NewReader(r.Body)
-		if err != nil {
-			http.Error(w, "gzip decoding error", http.StatusInternalServerError)
-			return
-		}
-		body = gz
-	}
-
 	var urlReq saveURLRequest
 
-	if err := json.NewDecoder(body).Decode(&urlReq); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&urlReq); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
