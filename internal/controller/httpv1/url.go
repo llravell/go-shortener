@@ -42,7 +42,22 @@ func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger, baseAdd
 }
 
 func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
-	res, err := io.ReadAll(r.Body)
+	body := r.Body
+
+	contentEncoding := r.Header.Get("Content-Encoding")
+	sendsGzip := strings.Contains(contentEncoding, "gzip")
+	ur.log.Info().Str("encoding", contentEncoding).Msg("[legacy] url encoding check")
+
+	if sendsGzip {
+		gz, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, "gzip decoding error", http.StatusInternalServerError)
+			return
+		}
+		body = gz
+	}
+
+	res, err := io.ReadAll(body)
 	url := string(res)
 	if err != nil || url == "" {
 		http.Error(w, "Bad request", http.StatusBadRequest)
