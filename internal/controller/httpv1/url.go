@@ -65,6 +65,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	sendsGzip := strings.Contains(contentEncoding, "gzip")
 
 	if sendsGzip {
+		ur.log.Info().Msg("start decoding")
 		gz, err := gzip.NewReader(r.Body)
 		if err != nil {
 			http.Error(w, "gzip decoding error", http.StatusInternalServerError)
