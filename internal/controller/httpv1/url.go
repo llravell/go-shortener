@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
@@ -60,7 +61,10 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	body := r.Body
 
-	if r.Header.Get("Content-Encoding") == "gzip" {
+	contentEncoding := r.Header.Get("Content-Encoding")
+	sendsGzip := strings.Contains(contentEncoding, "gzip")
+
+	if sendsGzip {
 		gz, err := gzip.NewReader(r.Body)
 		if err != nil {
 			http.Error(w, "gzip decoding error", http.StatusInternalServerError)

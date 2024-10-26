@@ -82,8 +82,11 @@ func TestURL(t *testing.T) {
 
 	compressedBody := &bytes.Buffer{}
 	wr := gzip.NewWriter(compressedBody)
-	wr.Write([]byte(defaultBody))
-	wr.Close()
+	_, err := wr.Write([]byte(defaultBody))
+	require.NoError(t, err)
+
+	err = wr.Close()
+	require.NoError(t, err)
 
 	testCases := []struct {
 		name         string
