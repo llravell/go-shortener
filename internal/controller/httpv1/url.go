@@ -33,7 +33,7 @@ func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger, baseAdd
 	r.With(middleware.DecompressMiddleware()).Post("/", routes.saveURLLegacy)
 
 	r.Route("/api", func(r chi.Router) {
-		r.Use(middleware.CompressMiddleware())
+		r.Use(middleware.CompressMiddleware("application/json"))
 		r.Use(middleware.DecompressMiddleware())
 
 		r.Post("/shorten", routes.saveURL)
