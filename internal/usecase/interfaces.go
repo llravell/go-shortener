@@ -7,11 +7,6 @@ type URLRepo interface {
 	Get(hash string) (*entity.URL, error)
 }
 
-type URLBackup interface {
-	Store([]entity.URL) error
-	Restore() ([]entity.URL, error)
-}
-
 type HashGenerator interface {
 	Generate(url string) string
 }

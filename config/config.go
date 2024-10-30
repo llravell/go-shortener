@@ -6,9 +6,11 @@ import (
 	"github.com/caarlos0/env"
 )
 
-const defaultAddr = ":8080"
-const defaultBaseAddr = "http://localhost:8080"
-const defaultFileStoragePath = "./urls.backup"
+const (
+	defaultAddr            = ":8080"
+	defaultBaseAddr        = "http://localhost:8080"
+	defaultFileStoragePath = "./urls.backup"
+)
 
 type Config struct {
 	Addr            string `env:"SERVER_ADDRESS"`

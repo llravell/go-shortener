@@ -17,9 +17,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const Hash = "ABC"
-const URL = "https://example.ru/"
-const BaseRedirectURL = "http://localhost:8080"
+const (
+	Hash            = "ABC"
+	URL             = "https://example.ru/"
+	BaseRedirectURL = "http://localhost:8080"
+)
 
 var redirectURL = fmt.Sprintf("%s/%s", BaseRedirectURL, Hash)
 
@@ -44,7 +46,13 @@ func (g *MockRepo) Get(hash string) (*entity.URL, error) {
 	return v, nil
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method string, path string, body io.Reader) (*http.Response, string) {
+func testRequest(
+	t *testing.T,
+	ts *httptest.Server,
+	method string,
+	path string,
+	body io.Reader,
+) (*http.Response, string) {
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
 
@@ -130,6 +138,7 @@ func TestURL(t *testing.T) {
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
+
 			if tc.expectedBody != "" {
 				assert.Equal(t, tc.expectedBody, body)
 			}

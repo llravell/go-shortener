@@ -34,7 +34,7 @@ func Get() zerolog.Logger {
 		}
 
 		if os.Getenv("APP_ENV") != "development" {
-			logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0664)
+			logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o664)
 			if err != nil {
 				panic(err)
 			}
