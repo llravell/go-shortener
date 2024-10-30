@@ -9,22 +9,24 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
-type urlBackup struct {
+const backupFilePermissions = 0o666
+
+type URLBackup struct {
 	file *os.File
 }
 
-func NewURLBackup(filename string) (*urlBackup, error) {
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0o666)
+func NewURLBackup(filename string) (*URLBackup, error) {
+	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, backupFilePermissions)
 	if err != nil {
 		return nil, err
 	}
 
-	return &urlBackup{
+	return &URLBackup{
 		file: file,
 	}, nil
 }
 
-func (u *urlBackup) Restore() ([]*entity.URL, error) {
+func (u *URLBackup) Restore() ([]*entity.URL, error) {
 	urls := make([]*entity.URL, 0)
 	scanner := bufio.NewScanner(u.file)
 
@@ -32,14 +34,14 @@ func (u *urlBackup) Restore() ([]*entity.URL, error) {
 		if !scanner.Scan() {
 			if err := scanner.Err(); err != nil {
 				return urls, err
-			} else {
-				break
 			}
+
+			break
 		}
 
 		var url entity.URL
-		err := json.Unmarshal(scanner.Bytes(), &url)
 
+		err := json.Unmarshal(scanner.Bytes(), &url)
 		if err != nil {
 			return urls, err
 		}
@@ -50,7 +52,7 @@ func (u *urlBackup) Restore() ([]*entity.URL, error) {
 	return urls, nil
 }
 
-func (u *urlBackup) Store(urls []*entity.URL) error {
+func (u *URLBackup) Store(urls []*entity.URL) error {
 	_, err := u.file.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
@@ -85,6 +87,6 @@ func (u *urlBackup) Store(urls []*entity.URL) error {
 	return nil
 }
 
-func (u *urlBackup) Close() error {
+func (u *URLBackup) Close() error {
 	return u.file.Close()
 }

@@ -19,6 +19,8 @@ func testRequest(
 	body io.Reader,
 	headers map[string]string,
 ) (*http.Response, []byte) {
+	t.Helper()
+
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
 
@@ -36,6 +38,8 @@ func testRequest(
 }
 
 func echoHandler(t *testing.T) http.HandlerFunc {
+	t.Helper()
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
@@ -48,6 +52,8 @@ func echoHandler(t *testing.T) http.HandlerFunc {
 }
 
 func compressReader(t *testing.T, data string) io.Reader {
+	t.Helper()
+
 	var buf bytes.Buffer
 
 	wr := gzip.NewWriter(&buf)
@@ -61,6 +67,8 @@ func compressReader(t *testing.T, data string) io.Reader {
 }
 
 func decompress(t *testing.T, data []byte) string {
+	t.Helper()
+
 	buf := bytes.NewBuffer(data)
 	r, err := gzip.NewReader(buf)
 	require.NoError(t, err)

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type randomStringGenerator struct {
+type RandomStringGenerator struct {
 	r *rand.Rand
 }
 
@@ -13,14 +13,14 @@ const hashLen = 10
 
 var letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func NewRandomStringGenerator() randomStringGenerator {
+func NewRandomStringGenerator() RandomStringGenerator {
 	s := rand.NewSource(time.Now().UnixNano())
-	rsg := randomStringGenerator{rand.New(s)}
+	rsg := RandomStringGenerator{rand.New(s)}
 
 	return rsg
 }
 
-func (rsg randomStringGenerator) Generate(url string) string {
+func (rsg RandomStringGenerator) Generate() string {
 	b := make([]byte, hashLen)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]

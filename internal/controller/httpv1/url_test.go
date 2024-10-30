@@ -25,9 +25,11 @@ const (
 
 var redirectURL = fmt.Sprintf("%s/%s", BaseRedirectURL, Hash)
 
+var errNotFound = errors.New("not found")
+
 type MockHashGenerator struct{}
 
-func (g MockHashGenerator) Generate(url string) string {
+func (g MockHashGenerator) Generate() string {
 	return Hash
 }
 
@@ -35,12 +37,12 @@ type MockRepo struct {
 	m map[string]*entity.URL
 }
 
-func (g *MockRepo) Store(url *entity.URL)  {}
+func (g *MockRepo) Store(_ *entity.URL)    {}
 func (g *MockRepo) GetList() []*entity.URL { return []*entity.URL{} }
 func (g *MockRepo) Get(hash string) (*entity.URL, error) {
 	v, ok := g.m[hash]
 	if !ok {
-		return nil, errors.New("Not found")
+		return nil, errNotFound
 	}
 
 	return v, nil
@@ -53,6 +55,8 @@ func testRequest(
 	path string,
 	body io.Reader,
 ) (*http.Response, string) {
+	t.Helper()
+
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
 
@@ -77,7 +81,7 @@ func TestURL(t *testing.T) {
 	newURLRoutes(router, urlUseCase, logger, BaseRedirectURL)
 
 	ts := httptest.NewServer(router)
-	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 	defer ts.Close()

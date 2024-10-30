@@ -25,6 +25,8 @@ type Log struct {
 }
 
 func readLog(t *testing.T, r *bytes.Buffer) *Log {
+	t.Helper()
+
 	var log Log
 
 	err := json.Unmarshal(r.Bytes(), &log)

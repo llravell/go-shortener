@@ -18,6 +18,8 @@ var log zerolog.Logger
 
 var logFile *os.File
 
+const logFilePermissions = 0o664
+
 func Get() zerolog.Logger {
 	once.Do(func() {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
@@ -34,7 +36,7 @@ func Get() zerolog.Logger {
 		}
 
 		if os.Getenv("APP_ENV") != "development" {
-			logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o664)
+			logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFilePermissions)
 			if err != nil {
 				panic(err)
 			}

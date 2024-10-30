@@ -17,7 +17,7 @@ func NewURLUseCase(r URLRepo, g HashGenerator) *URLUseCase {
 }
 
 func (uc *URLUseCase) SaveURL(url string) *entity.URL {
-	hash := uc.gen.Generate(url)
+	hash := uc.gen.Generate()
 	urlObj := entity.NewURL(url, hash)
 
 	uc.repo.Store(urlObj)

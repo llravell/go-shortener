@@ -24,7 +24,7 @@ type logEntry struct {
 	request *http.Request
 }
 
-func (l *logEntry) Write(status, bytes int, header http.Header, elapsed time.Duration, extra interface{}) {
+func (l *logEntry) Write(status, bytes int, _ http.Header, elapsed time.Duration, _ interface{}) {
 	l.logger.Info().
 		Str("remote_addr", l.request.RemoteAddr).
 		Str("method", l.request.Method).
@@ -35,7 +35,7 @@ func (l *logEntry) Write(status, bytes int, header http.Header, elapsed time.Dur
 		Msg("incoming request")
 }
 
-func (l *logEntry) Panic(v interface{}, stack []byte) {
+func (l *logEntry) Panic(v interface{}, _ []byte) {
 	middleware.PrintPrettyStack(v)
 }
 
