@@ -43,6 +43,7 @@ func Get() zerolog.Logger {
 		}
 
 		var goVersion string
+
 		buildInfo, ok := debug.ReadBuildInfo()
 		if ok {
 			goVersion = buildInfo.GoVersion

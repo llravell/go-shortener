@@ -11,7 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testRequest(t *testing.T, ts *httptest.Server, method string, path string, body io.Reader, headers map[string]string) (*http.Response, []byte) {
+func testRequest(
+	t *testing.T,
+	ts *httptest.Server,
+	method string,
+	path string,
+	body io.Reader,
+	headers map[string]string,
+) (*http.Response, []byte) {
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
 

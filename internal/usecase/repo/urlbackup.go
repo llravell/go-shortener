@@ -39,6 +39,7 @@ func (u *urlBackup) Restore() ([]*entity.URL, error) {
 
 		var url entity.URL
 		err := json.Unmarshal(scanner.Bytes(), &url)
+
 		if err != nil {
 			return urls, err
 		}
@@ -54,6 +55,7 @@ func (u *urlBackup) Store(urls []*entity.URL) error {
 	if err != nil {
 		return err
 	}
+
 	err = u.file.Truncate(0)
 	if err != nil {
 		return err

@@ -19,6 +19,7 @@ func Run(cfg *config.Config) {
 
 	urlStorage := repo.NewURLStorage()
 	backup, err := repo.NewURLBackup(cfg.FileStoragePath)
+
 	if err != nil {
 		log.Error().Err(err).Msg("Backup initialize failed")
 	} else {

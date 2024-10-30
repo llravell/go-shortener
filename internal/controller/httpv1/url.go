@@ -43,8 +43,10 @@ func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger, baseAdd
 func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 	res, err := io.ReadAll(r.Body)
 	url := string(res)
+
 	if err != nil || url == "" {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+
 		return
 	}
 
@@ -52,6 +54,7 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, urlObj.Short)))
+
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
 	}
@@ -62,6 +65,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&urlReq); err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+
 		return
 	}
 
@@ -70,9 +74,11 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	resp := saveURLResponse{
 		Result: fmt.Sprintf("%s/%s", ur.baseAddr, urlObj.Short),
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	err := json.NewEncoder(w).Encode(resp)
+
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
 	}
@@ -84,6 +90,7 @@ func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	url, err := ur.u.ResolveURL(hash)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+
 		return
 	}
 

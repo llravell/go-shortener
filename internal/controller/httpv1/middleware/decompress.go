@@ -17,6 +17,7 @@ func (d decompressor) Handler(next http.Handler) http.Handler {
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
 				http.Error(w, "gzip decoding error", http.StatusInternalServerError)
+
 				return
 			}
 
@@ -30,5 +31,6 @@ func (d decompressor) Handler(next http.Handler) http.Handler {
 
 func DecompressMiddleware() func(next http.Handler) http.Handler {
 	d := decompressor{}
+
 	return d.Handler
 }
