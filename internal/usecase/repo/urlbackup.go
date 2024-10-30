@@ -5,19 +5,15 @@ import (
 	"encoding/json"
 	"io"
 	"os"
-	"path"
 
 	"github.com/llravell/go-shortener/internal/entity"
 )
-
-const storageFileName = "urls.backup"
 
 type urlBackup struct {
 	file *os.File
 }
 
-func NewURLBackup(filepath string) (*urlBackup, error) {
-	filename := path.Join(filepath, storageFileName)
+func NewURLBackup(filename string) (*urlBackup, error) {
 	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err

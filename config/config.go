@@ -8,7 +8,7 @@ import (
 
 const defaultAddr = ":8080"
 const defaultBaseAddr = "http://localhost:8080"
-const defaultFileStoragePath = "./"
+const defaultFileStoragePath = "./urls.backup"
 
 type Config struct {
 	Addr            string `env:"SERVER_ADDRESS"`
