@@ -20,15 +20,17 @@ func TestDecompressMiddleware(t *testing.T) {
 	ts := httptest.NewServer(router)
 
 	testCases := []struct {
-		name         string
-		body         io.Reader
-		headers      map[string]string
-		expectedBody string
+		name           string
+		body           io.Reader
+		headers        map[string]string
+		expectedBody   string
+		expectedStatus int
 	}{
 		{
-			name:         "Client send data without compress",
-			body:         strings.NewReader("plain"),
-			expectedBody: "plain",
+			name:           "Client send data without compress",
+			body:           strings.NewReader("plain"),
+			expectedBody:   "plain",
+			expectedStatus: http.StatusOK,
 		},
 		{
 			name: "Client send data with compress",
@@ -36,7 +38,17 @@ func TestDecompressMiddleware(t *testing.T) {
 			headers: map[string]string{
 				"Content-Encoding": "gzip",
 			},
-			expectedBody: "compressed",
+			expectedBody:   "compressed",
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "Client send data with incorrect encoding header",
+			body: strings.NewReader("not compressed"),
+			headers: map[string]string{
+				"Content-Encoding": "gzip",
+			},
+			expectedBody:   "gzip decoding error\n",
+			expectedStatus: http.StatusInternalServerError,
 		},
 	}
 
@@ -45,6 +57,7 @@ func TestDecompressMiddleware(t *testing.T) {
 			res, body := testRequest(t, ts, http.MethodPost, "/", tc.body, tc.headers)
 			defer res.Body.Close()
 
+			assert.Equal(t, tc.expectedStatus, res.StatusCode)
 			assert.Equal(t, tc.expectedBody, string(body))
 		})
 	}
