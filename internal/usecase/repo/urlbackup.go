@@ -7,16 +7,19 @@ import (
 	"os"
 
 	"github.com/llravell/go-shortener/internal/entity"
+	"github.com/spf13/afero"
 )
 
 const backupFilePermissions = 0o666
 
 type URLBackup struct {
-	file *os.File
+	file afero.File
 }
 
 func NewURLBackup(filename string) (*URLBackup, error) {
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, backupFilePermissions)
+	fs := afero.NewOsFs()
+
+	file, err := fs.OpenFile(filename, os.O_RDWR|os.O_CREATE, backupFilePermissions)
 	if err != nil {
 		return nil, err
 	}
