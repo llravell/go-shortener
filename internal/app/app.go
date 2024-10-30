@@ -61,14 +61,16 @@ func Run(cfg *config.Config) {
 		log.Error().Err(err).Msg("Shortener server has been closed")
 	}
 
-	err = backup.Store(urlStorage.GetList())
-	if err != nil {
-		log.Error().Err(err).Msg("Backup store failed")
-	}
+	if backup != nil {
+		err = backup.Store(urlStorage.GetList())
+		if err != nil {
+			log.Error().Err(err).Msg("Backup store failed")
+		}
 
-	err = backup.Close()
-	if err != nil {
-		log.Error().Err(err).Msg("Backup close failed")
+		err = backup.Close()
+		if err != nil {
+			log.Error().Err(err).Msg("Backup close failed")
+		}
 	}
 
 	logger.Shutdown()
