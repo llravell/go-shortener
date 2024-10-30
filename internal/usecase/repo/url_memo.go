@@ -1,9 +1,13 @@
 package repo
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/llravell/go-shortener/internal/entity"
+)
 
 type urlRepo struct {
-	m map[string]string
+	m map[string]*entity.URL
 }
 
 type URLNotFoundError struct {
@@ -15,18 +19,34 @@ func (err *URLNotFoundError) Error() string {
 }
 
 func NewURLStorage() *urlRepo {
-	return &urlRepo{make(map[string]string)}
+	return &urlRepo{make(map[string]*entity.URL)}
 }
 
-func (u *urlRepo) Store(hash string, url string) {
-	u.m[hash] = url
+func (u *urlRepo) Store(url *entity.URL) {
+	u.m[url.Short] = url
 }
 
-func (u *urlRepo) Get(hash string) (string, error) {
+func (u *urlRepo) Get(hash string) (*entity.URL, error) {
 	url, ok := u.m[hash]
 	if !ok {
-		return "", &URLNotFoundError{hash}
+		return nil, &URLNotFoundError{hash}
 	}
 
 	return url, nil
+}
+
+func (u *urlRepo) GetList() []*entity.URL {
+	list := make([]*entity.URL, 0, len(u.m))
+
+	for _, url := range u.m {
+		list = append(list, url)
+	}
+
+	return list
+}
+
+func (u *urlRepo) Init(urls []*entity.URL) {
+	for _, url := range urls {
+		u.m[url.Short] = url
+	}
 }

@@ -48,10 +48,10 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash := ur.u.SaveURL(url)
+	urlObj := ur.u.SaveURL(url)
 
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, hash)))
+	_, err = w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, urlObj.Short)))
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
 	}
@@ -65,10 +65,10 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash := ur.u.SaveURL(urlReq.URL)
+	urlObj := ur.u.SaveURL(urlReq.URL)
 
 	resp := saveURLResponse{
-		Result: fmt.Sprintf("%s/%s", ur.baseAddr, hash),
+		Result: fmt.Sprintf("%s/%s", ur.baseAddr, urlObj.Short),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -87,7 +87,7 @@ func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ur.log.Info().Str("url", url).Msg("redirect")
+	ur.log.Info().Str("url", url.Original).Msg("redirect")
 
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, url.Original, http.StatusTemporaryRedirect)
 }

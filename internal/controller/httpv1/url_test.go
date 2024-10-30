@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -29,14 +30,15 @@ func (g MockHashGenerator) Generate(url string) string {
 }
 
 type MockRepo struct {
-	m map[string]string
+	m map[string]*entity.URL
 }
 
-func (g *MockRepo) Store(string, string) {}
-func (g *MockRepo) Get(hash string) (string, error) {
+func (g *MockRepo) Store(url *entity.URL)  {}
+func (g *MockRepo) GetList() []*entity.URL { return []*entity.URL{} }
+func (g *MockRepo) Get(hash string) (*entity.URL, error) {
 	v, ok := g.m[hash]
 	if !ok {
-		return "", errors.New("Not found")
+		return nil, errors.New("Not found")
 	}
 
 	return v, nil
@@ -57,8 +59,8 @@ func testRequest(t *testing.T, ts *httptest.Server, method string, path string, 
 
 func TestURL(t *testing.T) {
 	gen := MockHashGenerator{}
-	s := &MockRepo{map[string]string{
-		Hash: URL,
+	s := &MockRepo{map[string]*entity.URL{
+		Hash: entity.NewURL(redirectURL, Hash),
 	}}
 
 	urlUseCase := usecase.NewURLUseCase(s, gen)
