@@ -7,12 +7,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func NewRouter(u *usecase.URLUseCase, l zerolog.Logger, baseAddr string) *chi.Mux {
+func NewRouter(u *usecase.URLUseCase, l zerolog.Logger) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.LoggerMiddleware(l))
 
-	newURLRoutes(r, u, l, baseAddr)
+	newURLRoutes(r, u, l)
 
 	return r
 }

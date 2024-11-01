@@ -1,4 +1,4 @@
-package middleware
+package middleware_test
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,7 +44,7 @@ func TestLoggerMiddleware(t *testing.T) {
 	out := &bytes.Buffer{}
 	logger := zerolog.New(out)
 
-	router.Use(LoggerMiddleware(logger))
+	router.Use(middleware.LoggerMiddleware(logger))
 	router.Post("/", echoHandler(t))
 
 	ts := httptest.NewServer(router)

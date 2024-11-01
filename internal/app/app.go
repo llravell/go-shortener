@@ -34,12 +34,12 @@ func Run(cfg *config.Config) {
 	urlUseCase := usecase.NewURLUseCase(
 		urlStorage,
 		entity.NewRandomStringGenerator(),
+		cfg.BaseAddr,
 	)
 
 	router := httpv1.NewRouter(
 		urlUseCase,
 		log,
-		cfg.BaseAddr,
 	)
 
 	interrupt := make(chan os.Signal, 1)

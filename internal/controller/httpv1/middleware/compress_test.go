@@ -1,4 +1,4 @@
-package middleware
+package middleware_test
 
 import (
 	"io"
@@ -8,13 +8,14 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCompressMiddleware(t *testing.T) {
 	router := chi.NewRouter()
 
-	router.Use(CompressMiddleware("text/plain"))
+	router.Use(middleware.CompressMiddleware("text/plain"))
 	router.Post("/", echoHandler(t))
 
 	ts := httptest.NewServer(router)

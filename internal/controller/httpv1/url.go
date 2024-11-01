@@ -2,7 +2,6 @@ package httpv1
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -13,9 +12,8 @@ import (
 )
 
 type urlRoutes struct {
-	u        *usecase.URLUseCase
-	log      zerolog.Logger
-	baseAddr string
+	u   *usecase.URLUseCase
+	log zerolog.Logger
 }
 
 type saveURLRequest struct {
@@ -26,8 +24,8 @@ type saveURLResponse struct {
 	Result string `json:"result"`
 }
 
-func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger, baseAddr string) {
-	routes := &urlRoutes{u, l, baseAddr}
+func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
+	routes := &urlRoutes{u, l}
 
 	r.Get("/{id}", routes.resolveURL)
 	r.With(middleware.DecompressMiddleware()).Post("/", routes.saveURLLegacy)
@@ -54,7 +52,7 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
-	_, err = w.Write([]byte(fmt.Sprintf("%s/%s", ur.baseAddr, urlObj.Short)))
+	_, err = w.Write([]byte(ur.u.BuildRedirectURL(urlObj)))
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
 	}
@@ -72,7 +70,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	urlObj := ur.u.SaveURL(urlReq.URL)
 
 	resp := saveURLResponse{
-		Result: fmt.Sprintf("%s/%s", ur.baseAddr, urlObj.Short),
+		Result: ur.u.BuildRedirectURL(urlObj),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -75,10 +75,10 @@ func TestURL(t *testing.T) {
 		Hash: entity.NewURL(redirectURL, Hash),
 	}}
 
-	urlUseCase := usecase.NewURLUseCase(s, gen)
+	urlUseCase := usecase.NewURLUseCase(s, gen, BaseRedirectURL)
 	router := chi.NewRouter()
 	logger := zerolog.Nop()
-	newURLRoutes(router, urlUseCase, logger, BaseRedirectURL)
+	newURLRoutes(router, urlUseCase, logger)
 
 	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
