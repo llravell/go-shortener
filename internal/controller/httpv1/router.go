@@ -8,11 +8,11 @@ import (
 )
 
 func NewRouter(u *usecase.URLUseCase, l zerolog.Logger) *chi.Mux {
-	r := chi.NewRouter()
+	router := chi.NewRouter()
 
-	r.Use(middleware.LoggerMiddleware(l))
+	router.Use(middleware.LoggerMiddleware(l))
 
-	newURLRoutes(r, u, l)
+	newURLRoutes(router, u, l)
 
-	return r
+	return router
 }

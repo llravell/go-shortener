@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/llravell/go-shortener/config"
 	"github.com/llravell/go-shortener/internal/controller/httpv1"
@@ -13,6 +14,17 @@ import (
 	"github.com/llravell/go-shortener/internal/usecase/repo"
 	"github.com/llravell/go-shortener/logger"
 )
+
+func startServer(cfg *config.Config, handler http.Handler) error {
+	server := http.Server{
+		Addr:         cfg.Addr,
+		Handler:      handler,
+		ReadTimeout:  time.Minute,
+		WriteTimeout: time.Minute,
+	}
+
+	return server.ListenAndServe()
+}
 
 func Run(cfg *config.Config) {
 	log := logger.Get()
@@ -47,7 +59,7 @@ func Run(cfg *config.Config) {
 
 	serverNorify := make(chan error, 1)
 	go func() {
-		serverNorify <- http.ListenAndServe(cfg.Addr, router)
+		serverNorify <- startServer(cfg, router)
 		close(serverNorify)
 	}()
 

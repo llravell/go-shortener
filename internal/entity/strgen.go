@@ -1,30 +1,31 @@
 package entity
 
 import (
-	"math/rand"
-	"time"
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
 )
 
 type RandomStringGenerator struct {
-	r *rand.Rand
+	hashLen int
 }
 
-const hashLen = 10
+const defaultHashLen = 10
 
-var letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var ErrGenerateStringFailed = errors.New("generate string has been failed")
 
 func NewRandomStringGenerator() RandomStringGenerator {
-	s := rand.NewSource(time.Now().UnixNano())
-	rsg := RandomStringGenerator{rand.New(s)}
+	rsg := RandomStringGenerator{defaultHashLen}
 
 	return rsg
 }
 
-func (rsg RandomStringGenerator) Generate() string {
-	b := make([]byte, hashLen)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+func (rsg RandomStringGenerator) Generate() (string, error) {
+	buf := make([]byte, rsg.hashLen)
+
+	if _, err := rand.Read(buf); err != nil {
+		return "", ErrGenerateStringFailed
 	}
 
-	return string(b)
+	return base64.RawURLEncoding.EncodeToString(buf), nil
 }

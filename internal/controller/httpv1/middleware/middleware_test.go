@@ -3,6 +3,7 @@ package middleware_test
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -21,7 +22,7 @@ func testRequest(
 ) (*http.Response, []byte) {
 	t.Helper()
 
-	req, err := http.NewRequest(method, ts.URL+path, body)
+	req, err := http.NewRequestWithContext(context.TODO(), method, ts.URL+path, body)
 	require.NoError(t, err)
 
 	for k, v := range headers {
@@ -70,13 +71,13 @@ func decompress(t *testing.T, data []byte) string {
 	t.Helper()
 
 	buf := bytes.NewBuffer(data)
-	r, err := gzip.NewReader(buf)
+	gr, err := gzip.NewReader(buf)
 	require.NoError(t, err)
 
-	res, err := io.ReadAll(r)
+	res, err := io.ReadAll(gr)
 	require.NoError(t, err)
 
-	err = r.Close()
+	err = gr.Close()
 	require.NoError(t, err)
 
 	return string(res)

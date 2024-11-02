@@ -8,5 +8,5 @@ type URLRepo interface {
 }
 
 type HashGenerator interface {
-	Generate() string
+	Generate() (string, error)
 }

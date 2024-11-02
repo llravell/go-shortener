@@ -52,7 +52,7 @@ func Get() zerolog.Logger {
 		}
 
 		log = zerolog.New(output).
-			Level(zerolog.Level(logLevel)).
+			Level(zerolog.Level(logLevel)). //nolint:gosec // disable G115
 			With().
 			Timestamp().
 			Str("go_version", goVersion).

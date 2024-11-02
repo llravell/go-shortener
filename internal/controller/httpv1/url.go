@@ -48,7 +48,12 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj := ur.u.SaveURL(url)
+	urlObj, err := ur.u.SaveURL(url)
+	if err != nil {
+		http.Error(w, "saving url failed", http.StatusInternalServerError)
+
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 
@@ -67,7 +72,12 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj := ur.u.SaveURL(urlReq.URL)
+	urlObj, err := ur.u.SaveURL(urlReq.URL)
+	if err != nil {
+		http.Error(w, "saving url failed", http.StatusInternalServerError)
+
+		return
+	}
 
 	resp := saveURLResponse{
 		Result: ur.u.BuildRedirectURL(urlObj),
@@ -76,7 +86,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	err := json.NewEncoder(w).Encode(resp)
+	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
 	}

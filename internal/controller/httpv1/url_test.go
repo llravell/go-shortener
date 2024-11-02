@@ -1,6 +1,7 @@
 package httpv1
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -29,8 +30,8 @@ var errNotFound = errors.New("not found")
 
 type MockHashGenerator struct{}
 
-func (g MockHashGenerator) Generate() string {
-	return Hash
+func (g MockHashGenerator) Generate() (string, error) {
+	return Hash, nil
 }
 
 type MockRepo struct {
@@ -57,7 +58,7 @@ func testRequest(
 ) (*http.Response, string) {
 	t.Helper()
 
-	req, err := http.NewRequest(method, ts.URL+path, body)
+	req, err := http.NewRequestWithContext(context.TODO(), method, ts.URL+path, body)
 	require.NoError(t, err)
 
 	res, err := ts.Client().Do(req)
@@ -69,6 +70,7 @@ func testRequest(
 	return res, string(b)
 }
 
+//nolint:funlen
 func TestURL(t *testing.T) {
 	gen := MockHashGenerator{}
 	s := &MockRepo{map[string]*entity.URL{
