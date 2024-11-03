@@ -1,0 +1,33 @@
+linters:
+  enable-all: true
+  disable:
+    - gomnd
+    - execinquery
+    - exportloopref
+    - gochecknoglobals
+    - reassign
+    - exhaustruct
+    - tagliatelle
+    - wrapcheck
+    - testpackage
+    - paralleltest
+    - ireturn
+    - testifylint
+
+linters-settings:
+  depguard:
+    rules:
+      prevent_unmaintained_packages:
+        list-mode: lax
+        files:
+          - $all
+          - "!$test"
+        allow:
+          - $gostd
+
+  varnamelen:
+    min-name-length: 2
+    ignore-decls:
+      - w http.ResponseWriter
+      - r *http.Request
+      - r chi.Router

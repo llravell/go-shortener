@@ -1,6 +1,7 @@
 package httpv1
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,37 +11,54 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/usecase"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const Hash = "ABC"
-const URL = "https://example.ru/"
-const BaseRedirectURL = "http://localhost:8080"
+const (
+	Hash            = "ABC"
+	URL             = "https://example.ru/"
+	BaseRedirectURL = "http://localhost:8080"
+)
+
+var redirectURL = fmt.Sprintf("%s/%s", BaseRedirectURL, Hash)
+
+var errNotFound = errors.New("not found")
 
 type MockHashGenerator struct{}
 
-func (g MockHashGenerator) Generate(url string) string {
-	return Hash
+func (g MockHashGenerator) Generate() (string, error) {
+	return Hash, nil
 }
 
 type MockRepo struct {
-	m map[string]string
+	m map[string]*entity.URL
 }
 
-func (g *MockRepo) Store(string, string) {}
-func (g *MockRepo) Get(hash string) (string, error) {
+func (g *MockRepo) Store(_ *entity.URL)    {}
+func (g *MockRepo) GetList() []*entity.URL { return []*entity.URL{} }
+func (g *MockRepo) Get(hash string) (*entity.URL, error) {
 	v, ok := g.m[hash]
 	if !ok {
-		return "", errors.New("Not found")
+		return nil, errNotFound
 	}
 
 	return v, nil
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method string, path string, body io.Reader) (*http.Response, string) {
-	req, err := http.NewRequest(method, ts.URL+path, body)
+func testRequest(
+	t *testing.T,
+	ts *httptest.Server,
+	method string,
+	path string,
+	body io.Reader,
+) (*http.Response, string) {
+	t.Helper()
+
+	req, err := http.NewRequestWithContext(context.TODO(), method, ts.URL+path, body)
 	require.NoError(t, err)
 
 	res, err := ts.Client().Do(req)
@@ -52,18 +70,20 @@ func testRequest(t *testing.T, ts *httptest.Server, method string, path string, 
 	return res, string(b)
 }
 
+//nolint:funlen
 func TestURL(t *testing.T) {
 	gen := MockHashGenerator{}
-	s := &MockRepo{map[string]string{
-		Hash: URL,
+	s := &MockRepo{map[string]*entity.URL{
+		Hash: entity.NewURL(redirectURL, Hash),
 	}}
 
-	urlUseCase := usecase.NewURLUseCase(s, gen)
+	urlUseCase := usecase.NewURLUseCase(s, gen, BaseRedirectURL)
 	router := chi.NewRouter()
-	newURLRoutes(router, urlUseCase, BaseRedirectURL)
+	logger := zerolog.Nop()
+	newURLRoutes(router, urlUseCase, logger)
 
 	ts := httptest.NewServer(router)
-	ts.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
+	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
 	defer ts.Close()
@@ -77,7 +97,7 @@ func TestURL(t *testing.T) {
 		expectedBody string
 	}{
 		{
-			name:         "Sending url",
+			name:         "[legacy] sending url",
 			method:       http.MethodPost,
 			path:         "/",
 			body:         strings.NewReader(URL),
@@ -85,16 +105,29 @@ func TestURL(t *testing.T) {
 			expectedBody: fmt.Sprintf("%s/%s", BaseRedirectURL, Hash),
 		},
 		{
-			name:         "Sending empty payload",
+			name:         "[legacy] sending empty payload",
 			method:       http.MethodPost,
 			path:         "/",
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name:         "Sending url",
+			method:       http.MethodPost,
+			path:         "/api/shorten",
+			body:         strings.NewReader(fmt.Sprintf(`{"url":"%s"}`, URL)),
+			expectedCode: http.StatusCreated,
+			expectedBody: fmt.Sprintf("{\"result\":\"%s\"}\n", redirectURL),
+		},
+		{
+			name:         "Sending empty payload",
+			method:       http.MethodPost,
+			path:         "/api/shorten",
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "Redirect on url",
 			method:       http.MethodGet,
 			path:         "/" + Hash,
-			body:         nil,
 			expectedCode: http.StatusTemporaryRedirect,
 		},
 		{
@@ -111,6 +144,7 @@ func TestURL(t *testing.T) {
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
+
 			if tc.expectedBody != "" {
 				assert.Equal(t, tc.expectedBody, body)
 			}

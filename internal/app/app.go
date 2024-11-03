@@ -1,26 +1,90 @@
 package app
 
 import (
-	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/llravell/go-shortener/config"
 	"github.com/llravell/go-shortener/internal/controller/httpv1"
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/llravell/go-shortener/internal/usecase/repo"
+	"github.com/llravell/go-shortener/logger"
 )
 
+func startServer(cfg *config.Config, handler http.Handler) error {
+	server := http.Server{
+		Addr:         cfg.Addr,
+		Handler:      handler,
+		ReadTimeout:  time.Minute,
+		WriteTimeout: time.Minute,
+	}
+
+	return server.ListenAndServe()
+}
+
 func Run(cfg *config.Config) {
+	log := logger.Get()
+
+	urlStorage := repo.NewURLStorage()
+	backup, err := repo.NewURLBackup(cfg.FileStoragePath)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Backup initialize failed")
+	} else {
+		urls, err := backup.Restore()
+		if err != nil {
+			log.Error().Err(err).Msg("Backup restore failed")
+		}
+
+		urlStorage.Init(urls)
+	}
+
 	urlUseCase := usecase.NewURLUseCase(
-		repo.NewURLStorage(),
+		urlStorage,
 		entity.NewRandomStringGenerator(),
+		cfg.BaseAddr,
 	)
 
 	router := httpv1.NewRouter(
 		urlUseCase,
-		cfg.BaseAddr,
+		log,
 	)
 
-	log.Fatal(http.ListenAndServe(cfg.Addr, router))
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+
+	serverNorify := make(chan error, 1)
+	go func() {
+		serverNorify <- startServer(cfg, router)
+		close(serverNorify)
+	}()
+
+	log.Info().
+		Str("addr", cfg.Addr).
+		Msgf("Starting shortener server on '%s'", cfg.Addr)
+
+	select {
+	case s := <-interrupt:
+		log.Info().Str("signal", s.String()).Msg("interrupt")
+	case err = <-serverNorify:
+		log.Error().Err(err).Msg("Shortener server has been closed")
+	}
+
+	if backup != nil {
+		err = backup.Store(urlStorage.GetList())
+		if err != nil {
+			log.Error().Err(err).Msg("Backup store failed")
+		}
+
+		err = backup.Close()
+		if err != nil {
+			log.Error().Err(err).Msg("Backup close failed")
+		}
+	}
+
+	logger.Shutdown()
 }

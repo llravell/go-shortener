@@ -1,24 +1,41 @@
 package usecase
 
+import (
+	"fmt"
+
+	"github.com/llravell/go-shortener/internal/entity"
+)
+
 type URLUseCase struct {
-	repo URLRepo
-	gen  HashGenerator
+	repo            URLRepo
+	gen             HashGenerator
+	baseRedirectURL string
 }
 
-func NewURLUseCase(r URLRepo, g HashGenerator) *URLUseCase {
+func NewURLUseCase(repo URLRepo, gen HashGenerator, baseRedirectURL string) *URLUseCase {
 	return &URLUseCase{
-		repo: r,
-		gen:  g,
+		repo:            repo,
+		gen:             gen,
+		baseRedirectURL: baseRedirectURL,
 	}
 }
 
-func (uc *URLUseCase) SaveURL(url string) string {
-	hash := uc.gen.Generate(url)
-	uc.repo.Store(hash, url)
+func (uc *URLUseCase) SaveURL(url string) (*entity.URL, error) {
+	hash, err := uc.gen.Generate()
+	if err != nil {
+		return nil, err
+	}
 
-	return hash
+	urlObj := entity.NewURL(url, hash)
+	uc.repo.Store(urlObj)
+
+	return urlObj, nil
 }
 
-func (uc *URLUseCase) ResolveURL(hash string) (string, error) {
+func (uc *URLUseCase) ResolveURL(hash string) (*entity.URL, error) {
 	return uc.repo.Get(hash)
+}
+
+func (uc *URLUseCase) BuildRedirectURL(url *entity.URL) string {
+	return fmt.Sprintf("%s/%s", uc.baseRedirectURL, url.Short)
 }

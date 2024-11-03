@@ -8,8 +8,14 @@
 # Test binary, built with `go test -c`
 *.test
 
+# Logs
+*.log
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Backups
+*.backup
 
 # Binaries
 cmd/shortener/main

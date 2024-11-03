@@ -1,10 +1,12 @@
 package usecase
 
+import "github.com/llravell/go-shortener/internal/entity"
+
 type URLRepo interface {
-	Store(hash string, url string)
-	Get(hash string) (string, error)
+	Store(url *entity.URL)
+	Get(hash string) (*entity.URL, error)
 }
 
 type HashGenerator interface {
-	Generate(url string) string
+	Generate() (string, error)
 }
