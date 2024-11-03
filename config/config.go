@@ -7,26 +7,31 @@ import (
 )
 
 const (
-	defaultAddr            = ":8080"
-	defaultBaseAddr        = "http://localhost:8080"
-	defaultFileStoragePath = "./urls.backup"
+	_defaultAddr            = ":8080"
+	_defaultBaseAddr        = "http://localhost:8080"
+	_defaultFileStoragePath = "./urls.backup"
+	_defaultDatabaseDsn     = "host=localhost dbname=postgres sslmode=disable"
 )
 
 type Config struct {
 	Addr            string `env:"SERVER_ADDRESS"`
 	BaseAddr        string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	DatabaseDsn     string `env:"DATABASE_DSN"`
 }
 
 func NewConfig() (*Config, error) {
 	cfg := &Config{
-		Addr:     defaultAddr,
-		BaseAddr: defaultBaseAddr,
+		Addr:            _defaultAddr,
+		BaseAddr:        _defaultBaseAddr,
+		FileStoragePath: _defaultFileStoragePath,
+		DatabaseDsn:     _defaultDatabaseDsn,
 	}
 
-	flag.StringVar(&cfg.Addr, "a", defaultAddr, "Server address as host:port")
-	flag.StringVar(&cfg.BaseAddr, "b", defaultBaseAddr, "Base address for redirect as host:port")
-	flag.StringVar(&cfg.FileStoragePath, "f", defaultFileStoragePath, "File storage path")
+	flag.StringVar(&cfg.Addr, "a", _defaultAddr, "Server address as host:port")
+	flag.StringVar(&cfg.BaseAddr, "b", _defaultBaseAddr, "Base address for redirect as host:port")
+	flag.StringVar(&cfg.FileStoragePath, "f", _defaultFileStoragePath, "File storage path")
+	flag.StringVar(&cfg.DatabaseDsn, "d", _defaultDatabaseDsn, "DB connect address")
 	flag.Parse()
 
 	return cfg, env.Parse(cfg)

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/llravell/go-shortener/config"
 	"github.com/llravell/go-shortener/internal/app"
 )

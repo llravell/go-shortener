@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,22 +27,44 @@ func startServer(cfg *config.Config, handler http.Handler) error {
 	return server.ListenAndServe()
 }
 
+//nolint:funlen
 func Run(cfg *config.Config) {
 	log := logger.Get()
+	defer logger.Close()
+
+	db, err := sql.Open("pgx", cfg.DatabaseDsn)
+	if err != nil {
+		log.Error().Err(err).Msg("Database connection failed")
+		panic(err)
+	}
+
+	defer db.Close()
 
 	urlStorage := repo.NewURLStorage()
-	backup, err := repo.NewURLBackup(cfg.FileStoragePath)
 
+	backup, err := repo.NewURLBackup(cfg.FileStoragePath)
 	if err != nil {
 		log.Error().Err(err).Msg("Backup initialize failed")
-	} else {
-		urls, err := backup.Restore()
+		panic(err)
+	}
+
+	urls, err := backup.Restore()
+	if err != nil {
+		log.Error().Err(err).Msg("Backup restore failed")
+	}
+
+	urlStorage.Init(urls)
+
+	defer func() {
+		err := backup.Store(urlStorage.GetList())
 		if err != nil {
 			log.Error().Err(err).Msg("Backup restore failed")
 		}
 
-		urlStorage.Init(urls)
-	}
+		backup.Close()
+	}()
+
+	healthUseCase := usecase.NewHealthUseCase(db)
 
 	urlUseCase := usecase.NewURLUseCase(
 		urlStorage,
@@ -51,6 +74,7 @@ func Run(cfg *config.Config) {
 
 	router := httpv1.NewRouter(
 		urlUseCase,
+		healthUseCase,
 		log,
 	)
 
@@ -73,18 +97,4 @@ func Run(cfg *config.Config) {
 	case err = <-serverNorify:
 		log.Error().Err(err).Msg("Shortener server has been closed")
 	}
-
-	if backup != nil {
-		err = backup.Store(urlStorage.GetList())
-		if err != nil {
-			log.Error().Err(err).Msg("Backup store failed")
-		}
-
-		err = backup.Close()
-		if err != nil {
-			log.Error().Err(err).Msg("Backup close failed")
-		}
-	}
-
-	logger.Shutdown()
 }
