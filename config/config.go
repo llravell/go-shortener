@@ -10,7 +10,7 @@ const (
 	_defaultAddr            = ":8080"
 	_defaultBaseAddr        = "http://localhost:8080"
 	_defaultFileStoragePath = "./urls.backup"
-	_defaultDatabaseDsn     = "host=localhost dbname=postgres sslmode=disable"
+	_defaultDatabaseDsn     = ""
 )
 
 type Config struct {
