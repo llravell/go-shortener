@@ -29,6 +29,14 @@ func (u *URLMemoRepo) Store(_ context.Context, url *entity.URL) (*entity.URL, er
 	return url, nil
 }
 
+func (u *URLMemoRepo) StoreMultiple(_ context.Context, urls []*entity.URL) error {
+	for _, url := range urls {
+		u.m[url.Short] = url
+	}
+
+	return nil
+}
+
 func (u *URLMemoRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
 	url, ok := u.m[hash]
 	if !ok {

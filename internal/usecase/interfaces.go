@@ -8,6 +8,7 @@ import (
 
 type URLRepo interface {
 	Store(ctx context.Context, url *entity.URL) (*entity.URL, error)
+	StoreMultiple(ctx context.Context, urls []*entity.URL) error
 	Get(ctx context.Context, hash string) (*entity.URL, error)
 }
 

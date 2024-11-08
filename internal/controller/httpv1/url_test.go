@@ -46,6 +46,10 @@ func (g *MockRepo) GetList() []*entity.URL {
 	return []*entity.URL{}
 }
 
+func (g *MockRepo) StoreMultiple(_ context.Context, _ []*entity.URL) error {
+	return nil
+}
+
 func (g *MockRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
 	v, ok := g.m[hash]
 	if !ok {

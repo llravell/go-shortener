@@ -24,6 +24,16 @@ type saveURLResponse struct {
 	Result string `json:"result"`
 }
 
+type URLBatchRequestItem struct {
+	CorrelationId string `json:"correlation_id"`
+	OriginalUrl   string `json:"original_url"`
+}
+
+type URLBatchResponseItem struct {
+	CorrelationId string `json:"correlation_id"`
+	ShortUrl      string `json:"short_url"`
+}
+
 func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
 	routes := &urlRoutes{u, l}
 
@@ -34,7 +44,10 @@ func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
 		r.Use(middleware.CompressMiddleware("application/json"))
 		r.Use(middleware.DecompressMiddleware())
 
-		r.Post("/shorten", routes.saveURL)
+		r.Route("/shorten", func(r chi.Router) {
+			r.Post("/", routes.saveURL)
+			r.Post("/batch", routes.saveURLMultiple)
+		})
 	})
 }
 
@@ -87,6 +100,47 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	err = json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		ur.log.Err(err).Msg("response write has been failed")
+	}
+}
+
+func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
+	var batchItems []URLBatchRequestItem
+
+	if err := json.NewDecoder(r.Body).Decode(&batchItems); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+
+		return
+	}
+
+	urls := make([]string, 0, len(batchItems))
+	for _, item := range batchItems {
+		urls = append(urls, item.OriginalUrl)
+	}
+
+	urlObjs, err := ur.u.SaveURLMultiple(r.Context(), urls)
+	if err != nil {
+		http.Error(w, "saving url failed", http.StatusInternalServerError)
+
+		return
+	}
+
+	responseItems := make([]URLBatchResponseItem, 0, len(batchItems))
+
+	for i, urlObj := range urlObjs {
+		item := URLBatchResponseItem{
+			CorrelationId: batchItems[i].CorrelationId,
+			ShortUrl:      urlObj.Short,
+		}
+
+		responseItems = append(responseItems, item)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	err = json.NewEncoder(w).Encode(responseItems)
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
 	}
