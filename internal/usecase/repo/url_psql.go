@@ -48,6 +48,7 @@ func (u *URLPsqlRepo) Bootstrap(ctx context.Context) error {
 	defer cancel()
 
 	_, err := u.db.ExecContext(ctx, `
+		CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 		CREATE TABLE IF NOT EXISTS urls (
 			uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 			url VARCHAR(2048) NOT NULL,
