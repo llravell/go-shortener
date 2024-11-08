@@ -38,8 +38,14 @@ type MockRepo struct {
 	m map[string]*entity.URL
 }
 
-func (g *MockRepo) Store(_ *entity.URL)    {}
-func (g *MockRepo) GetList() []*entity.URL { return []*entity.URL{} }
+func (g *MockRepo) Store(_ context.Context, url *entity.URL) (*entity.URL, error) {
+	return url, nil
+}
+
+func (g *MockRepo) GetList() []*entity.URL {
+	return []*entity.URL{}
+}
+
 func (g *MockRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
 	v, ok := g.m[hash]
 	if !ok {
@@ -73,11 +79,14 @@ func testRequest(
 //nolint:funlen
 func TestURL(t *testing.T) {
 	gen := MockHashGenerator{}
-	s := &MockRepo{map[string]*entity.URL{
-		Hash: entity.NewURL(redirectURL, Hash),
+	repo := &MockRepo{map[string]*entity.URL{
+		Hash: {
+			Short:    Hash,
+			Original: redirectURL,
+		},
 	}}
 
-	urlUseCase := usecase.NewURLUseCase(s, gen, BaseRedirectURL)
+	urlUseCase := usecase.NewURLUseCase(repo, gen, BaseRedirectURL)
 	router := chi.NewRouter()
 	logger := zerolog.Nop()
 	newURLRoutes(router, urlUseCase, logger)

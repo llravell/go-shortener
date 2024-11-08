@@ -41,7 +41,7 @@ func readNextURLFromFile(t *testing.T, file afero.File) *entity.URL {
 }
 
 func TestURLBackup(t *testing.T) {
-	url := entity.NewURL("https://foo.ru", "foo")
+	url := &entity.URL{Short: "foo", Original: "https://foo.ru"}
 	urlJSON, err := json.Marshal(url)
 	require.NoError(t, err)
 

@@ -10,24 +10,39 @@ import (
 
 const (
 	_queryTimeout     = 10 * time.Second
+	_execTimeout      = 20 * time.Second
 	_bootstrapTimeout = time.Minute
 )
 
 type URLPsqlRepo struct {
-	db *sql.DB
+	conn *sql.DB
 }
 
-func NewURLPsqlRepo(db *sql.DB) *URLPsqlRepo {
-	return &URLPsqlRepo{db}
+func NewURLPsqlRepo(conn *sql.DB) *URLPsqlRepo {
+	return &URLPsqlRepo{conn: conn}
 }
 
-func (u *URLPsqlRepo) Store(_ *entity.URL) {}
+func (u *URLPsqlRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
+	ctx, cancel := context.WithTimeout(ctx, _queryTimeout)
+	defer cancel()
+
+	_, err := u.conn.ExecContext(ctx, `
+		INSERT INTO urls (url, short)
+		VALUES
+			($1, $2);
+	`, url.Original, url.Short)
+	if err != nil {
+		return nil, err
+	}
+
+	return u.Get(ctx, url.Short)
+}
 
 func (u *URLPsqlRepo) Get(ctx context.Context, hash string) (*entity.URL, error) {
 	ctx, cancel := context.WithTimeout(ctx, _queryTimeout)
 	defer cancel()
 
-	row := u.db.QueryRowContext(
+	row := u.conn.QueryRowContext(
 		ctx,
 		"SELECT uuid, url, short FROM urls WHERE short=$1",
 		hash,
@@ -47,7 +62,7 @@ func (u *URLPsqlRepo) Bootstrap(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, _bootstrapTimeout)
 	defer cancel()
 
-	_, err := u.db.ExecContext(ctx, `
+	_, err := u.conn.ExecContext(ctx, `
 		CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 		CREATE TABLE IF NOT EXISTS urls (
 			uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -56,16 +71,6 @@ func (u *URLPsqlRepo) Bootstrap(ctx context.Context) error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 	`)
-	if err != nil {
-		return err
-	}
-
-	_, err = u.db.ExecContext(ctx, `
-		INSERT INTO urls (url, short)
-		VALUES
-			($1, $2)
-		ON CONFLICT (short) DO NOTHING;
-	`, "https://ya.ru", "ya")
 
 	return err
 }

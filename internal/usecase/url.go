@@ -21,16 +21,15 @@ func NewURLUseCase(repo URLRepo, gen HashGenerator, baseRedirectURL string) *URL
 	}
 }
 
-func (uc *URLUseCase) SaveURL(url string) (*entity.URL, error) {
+func (uc *URLUseCase) SaveURL(ctx context.Context, url string) (*entity.URL, error) {
 	hash, err := uc.gen.Generate()
 	if err != nil {
 		return nil, err
 	}
 
-	urlObj := entity.NewURL(url, hash)
-	uc.repo.Store(urlObj)
+	urlObj := &entity.URL{Original: url, Short: hash}
 
-	return urlObj, nil
+	return uc.repo.Store(ctx, urlObj)
 }
 
 func (uc *URLUseCase) ResolveURL(ctx context.Context, hash string) (*entity.URL, error) {

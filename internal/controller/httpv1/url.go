@@ -48,7 +48,7 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(url)
+	urlObj, err := ur.u.SaveURL(r.Context(), url)
 	if err != nil {
 		http.Error(w, "saving url failed", http.StatusInternalServerError)
 
@@ -72,7 +72,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(urlReq.URL)
+	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL)
 	if err != nil {
 		http.Error(w, "saving url failed", http.StatusInternalServerError)
 

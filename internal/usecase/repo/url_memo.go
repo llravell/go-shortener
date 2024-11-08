@@ -23,8 +23,10 @@ func NewURLMemoRepo() *URLMemoRepo {
 	return &URLMemoRepo{make(map[string]*entity.URL)}
 }
 
-func (u *URLMemoRepo) Store(url *entity.URL) {
+func (u *URLMemoRepo) Store(_ context.Context, url *entity.URL) (*entity.URL, error) {
 	u.m[url.Short] = url
+
+	return url, nil
 }
 
 func (u *URLMemoRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
