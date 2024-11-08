@@ -56,6 +56,16 @@ func (u *URLPsqlRepo) Bootstrap(ctx context.Context) error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = u.db.ExecContext(ctx, `
+		INSERT INTO urls (url, short)
+		VALUES
+			($1, $2)
+		ON CONFLICT (short) DO NOTHING;
+	`, "https://ya.ru", "ya")
 
 	return err
 }
