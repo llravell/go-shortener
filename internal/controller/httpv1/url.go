@@ -131,7 +131,7 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 	for i, urlObj := range urlObjs {
 		item := URLBatchResponseItem{
 			CorrelationID: batchItems[i].CorrelationID,
-			ShortURL:      urlObj.Short,
+			ShortURL:      ur.u.BuildRedirectURL(urlObj),
 		}
 
 		responseItems = append(responseItems, item)
