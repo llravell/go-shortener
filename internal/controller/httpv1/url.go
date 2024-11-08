@@ -25,13 +25,13 @@ type saveURLResponse struct {
 }
 
 type URLBatchRequestItem struct {
-	CorrelationId string `json:"correlation_id"`
-	OriginalUrl   string `json:"original_url"`
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
 }
 
 type URLBatchResponseItem struct {
-	CorrelationId string `json:"correlation_id"`
-	ShortUrl      string `json:"short_url"`
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
 }
 
 func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
@@ -116,7 +116,7 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 
 	urls := make([]string, 0, len(batchItems))
 	for _, item := range batchItems {
-		urls = append(urls, item.OriginalUrl)
+		urls = append(urls, item.OriginalURL)
 	}
 
 	urlObjs, err := ur.u.SaveURLMultiple(r.Context(), urls)
@@ -130,8 +130,8 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 
 	for i, urlObj := range urlObjs {
 		item := URLBatchResponseItem{
-			CorrelationId: batchItems[i].CorrelationId,
-			ShortUrl:      urlObj.Short,
+			CorrelationID: batchItems[i].CorrelationID,
+			ShortURL:      urlObj.Short,
 		}
 
 		responseItems = append(responseItems, item)
