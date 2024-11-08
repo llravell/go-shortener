@@ -40,7 +40,7 @@ type MockRepo struct {
 
 func (g *MockRepo) Store(_ *entity.URL)    {}
 func (g *MockRepo) GetList() []*entity.URL { return []*entity.URL{} }
-func (g *MockRepo) GetContext(_ context.Context, hash string) (*entity.URL, error) {
+func (g *MockRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
 	v, ok := g.m[hash]
 	if !ok {
 		return nil, errNotFound

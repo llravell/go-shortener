@@ -95,7 +95,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	hash := r.PathValue(`id`)
 
-	url, err := ur.u.ResolveURLContext(r.Context(), hash)
+	url, err := ur.u.ResolveURL(r.Context(), hash)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 

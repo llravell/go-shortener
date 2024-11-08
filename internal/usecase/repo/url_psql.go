@@ -8,7 +8,10 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
-const _queryTimeout = 10 * time.Second
+const (
+	_queryTimeout     = 10 * time.Second
+	_bootstrapTimeout = time.Minute
+)
 
 type URLPsqlRepo struct {
 	db *sql.DB
@@ -20,7 +23,7 @@ func NewURLPsqlRepo(db *sql.DB) *URLPsqlRepo {
 
 func (u *URLPsqlRepo) Store(_ *entity.URL) {}
 
-func (u *URLPsqlRepo) GetContext(ctx context.Context, hash string) (*entity.URL, error) {
+func (u *URLPsqlRepo) Get(ctx context.Context, hash string) (*entity.URL, error) {
 	ctx, cancel := context.WithTimeout(ctx, _queryTimeout)
 	defer cancel()
 
@@ -38,4 +41,20 @@ func (u *URLPsqlRepo) GetContext(ctx context.Context, hash string) (*entity.URL,
 	}
 
 	return &url, nil
+}
+
+func (u *URLPsqlRepo) Bootstrap(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, _bootstrapTimeout)
+	defer cancel()
+
+	_, err := u.db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS urls (
+			uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+			url VARCHAR(2048) NOT NULL,
+			short VARCHAR(50) UNIQUE NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+	`)
+
+	return err
 }

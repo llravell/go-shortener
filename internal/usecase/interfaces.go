@@ -8,7 +8,7 @@ import (
 
 type URLRepo interface {
 	Store(url *entity.URL)
-	GetContext(ctx context.Context, hash string) (*entity.URL, error)
+	Get(ctx context.Context, hash string) (*entity.URL, error)
 }
 
 type HashGenerator interface {

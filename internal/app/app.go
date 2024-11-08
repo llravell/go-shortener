@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 	"os"
@@ -73,9 +74,17 @@ func Run(cfg *config.Config) {
 			log.Error().Err(err).Msg("Database connection failed")
 			panic(err)
 		}
-
-		urlRepo = repo.NewURLPsqlRepo(db)
 		defer db.Close()
+
+		psqlRepo := repo.NewURLPsqlRepo(db)
+
+		err = psqlRepo.Bootstrap(context.Background())
+		if err != nil {
+			log.Error().Err(err).Msg("Database bootstrap failed")
+			panic(err)
+		}
+
+		urlRepo = psqlRepo
 	} else {
 		memoRepo := repo.NewURLMemoRepo()
 		cancel := prepareMemoryURLRepo(memoRepo, cfg, log)

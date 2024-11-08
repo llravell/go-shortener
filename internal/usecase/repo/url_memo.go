@@ -27,7 +27,7 @@ func (u *URLMemoRepo) Store(url *entity.URL) {
 	u.m[url.Short] = url
 }
 
-func (u *URLMemoRepo) GetContext(_ context.Context, hash string) (*entity.URL, error) {
+func (u *URLMemoRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
 	url, ok := u.m[hash]
 	if !ok {
 		return nil, &URLNotFoundError{hash}

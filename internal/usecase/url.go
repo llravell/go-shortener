@@ -33,8 +33,8 @@ func (uc *URLUseCase) SaveURL(url string) (*entity.URL, error) {
 	return urlObj, nil
 }
 
-func (uc *URLUseCase) ResolveURLContext(ctx context.Context, hash string) (*entity.URL, error) {
-	return uc.repo.GetContext(ctx, hash)
+func (uc *URLUseCase) ResolveURL(ctx context.Context, hash string) (*entity.URL, error) {
+	return uc.repo.Get(ctx, hash)
 }
 
 func (uc *URLUseCase) BuildRedirectURL(url *entity.URL) string {
