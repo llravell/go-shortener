@@ -1,12 +1,13 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
-type URLRepo struct {
+type URLMemoRepo struct {
 	m map[string]*entity.URL
 }
 
@@ -18,15 +19,15 @@ func (err *URLNotFoundError) Error() string {
 	return fmt.Sprintf(`Not found url with hash "%s"`, err.hash)
 }
 
-func NewURLStorage() *URLRepo {
-	return &URLRepo{make(map[string]*entity.URL)}
+func NewURLMemoRepo() *URLMemoRepo {
+	return &URLMemoRepo{make(map[string]*entity.URL)}
 }
 
-func (u *URLRepo) Store(url *entity.URL) {
+func (u *URLMemoRepo) Store(url *entity.URL) {
 	u.m[url.Short] = url
 }
 
-func (u *URLRepo) Get(hash string) (*entity.URL, error) {
+func (u *URLMemoRepo) GetContext(_ context.Context, hash string) (*entity.URL, error) {
 	url, ok := u.m[hash]
 	if !ok {
 		return nil, &URLNotFoundError{hash}
@@ -35,7 +36,7 @@ func (u *URLRepo) Get(hash string) (*entity.URL, error) {
 	return url, nil
 }
 
-func (u *URLRepo) GetList() []*entity.URL {
+func (u *URLMemoRepo) GetList() []*entity.URL {
 	list := make([]*entity.URL, 0, len(u.m))
 
 	for _, url := range u.m {
@@ -45,7 +46,7 @@ func (u *URLRepo) GetList() []*entity.URL {
 	return list
 }
 
-func (u *URLRepo) Init(urls []*entity.URL) {
+func (u *URLMemoRepo) Init(urls []*entity.URL) {
 	for _, url := range urls {
 		u.m[url.Short] = url
 	}

@@ -40,7 +40,7 @@ type MockRepo struct {
 
 func (g *MockRepo) Store(_ *entity.URL)    {}
 func (g *MockRepo) GetList() []*entity.URL { return []*entity.URL{} }
-func (g *MockRepo) Get(hash string) (*entity.URL, error) {
+func (g *MockRepo) GetContext(_ context.Context, hash string) (*entity.URL, error) {
 	v, ok := g.m[hash]
 	if !ok {
 		return nil, errNotFound
@@ -58,7 +58,7 @@ func testRequest(
 ) (*http.Response, string) {
 	t.Helper()
 
-	req, err := http.NewRequestWithContext(context.TODO(), method, ts.URL+path, body)
+	req, err := http.NewRequestWithContext(context.Background(), method, ts.URL+path, body)
 	require.NoError(t, err)
 
 	res, err := ts.Client().Do(req)

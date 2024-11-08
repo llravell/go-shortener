@@ -14,6 +14,7 @@ import (
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/llravell/go-shortener/internal/usecase/repo"
 	"github.com/llravell/go-shortener/logger"
+	"github.com/rs/zerolog"
 )
 
 func startServer(cfg *config.Config, handler http.Handler) error {
@@ -27,21 +28,11 @@ func startServer(cfg *config.Config, handler http.Handler) error {
 	return server.ListenAndServe()
 }
 
-//nolint:funlen
-func Run(cfg *config.Config) {
-	log := logger.Get()
-	defer logger.Close()
-
-	db, err := sql.Open("pgx", cfg.DatabaseDsn)
-	if err != nil {
-		log.Error().Err(err).Msg("Database connection failed")
-		panic(err)
-	}
-
-	defer db.Close()
-
-	urlStorage := repo.NewURLStorage()
-
+func prepareMemoryURLRepo(
+	memoRepo *repo.URLMemoRepo,
+	cfg *config.Config,
+	log zerolog.Logger,
+) func() error {
 	backup, err := repo.NewURLBackup(cfg.FileStoragePath)
 	if err != nil {
 		log.Error().Err(err).Msg("Backup initialize failed")
@@ -53,21 +44,52 @@ func Run(cfg *config.Config) {
 		log.Error().Err(err).Msg("Backup restore failed")
 	}
 
-	urlStorage.Init(urls)
+	memoRepo.Init(urls)
 
-	defer func() {
-		err := backup.Store(urlStorage.GetList())
+	return func() error {
+		err := backup.Store(memoRepo.GetList())
 		if err != nil {
-			log.Error().Err(err).Msg("Backup restore failed")
+			log.Error().Err(err).Msg("Backup store failed")
 		}
 
-		backup.Close()
-	}()
+		return backup.Close()
+	}
+}
+
+//nolint:funlen
+func Run(cfg *config.Config) {
+	log := logger.Get()
+	defer logger.Close()
+
+	var db *sql.DB
+
+	var err error
+
+	var urlRepo usecase.URLRepo
+
+	if cfg.DatabaseDsn != "" {
+		db, err = sql.Open("pgx", cfg.DatabaseDsn)
+		if err != nil {
+			log.Error().Err(err).Msg("Database connection failed")
+			panic(err)
+		}
+
+		urlRepo = repo.NewURLPsqlRepo(db)
+		defer db.Close()
+	} else {
+		memoRepo := repo.NewURLMemoRepo()
+		cancel := prepareMemoryURLRepo(memoRepo, cfg, log)
+		urlRepo = memoRepo
+
+		defer func() {
+			err = cancel()
+		}()
+	}
 
 	healthUseCase := usecase.NewHealthUseCase(db)
 
 	urlUseCase := usecase.NewURLUseCase(
-		urlStorage,
+		urlRepo,
 		entity.NewRandomStringGenerator(),
 		cfg.BaseAddr,
 	)
