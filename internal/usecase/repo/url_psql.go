@@ -84,20 +84,3 @@ func (u *URLPsqlRepo) Get(ctx context.Context, hash string) (*entity.URL, error)
 
 	return &url, nil
 }
-
-func (u *URLPsqlRepo) Bootstrap(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, _bootstrapTimeout)
-	defer cancel()
-
-	_, err := u.conn.ExecContext(ctx, `
-		CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-		CREATE TABLE IF NOT EXISTS urls (
-			uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-			url VARCHAR(2048) NOT NULL,
-			short VARCHAR(50) UNIQUE NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		);
-	`)
-
-	return err
-}

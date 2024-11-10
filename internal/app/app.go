@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"database/sql"
 	"net/http"
 	"os"
@@ -57,34 +56,16 @@ func prepareMemoryURLRepo(
 	}
 }
 
-//nolint:funlen
-func Run(cfg *config.Config) {
+func Run(cfg *config.Config, db *sql.DB) {
 	log := logger.Get()
 	defer logger.Close()
-
-	var db *sql.DB
 
 	var err error
 
 	var urlRepo usecase.URLRepo
 
 	if cfg.DatabaseDsn != "" {
-		db, err = sql.Open("pgx", cfg.DatabaseDsn)
-		if err != nil {
-			log.Error().Err(err).Msg("Database connection failed")
-			panic(err)
-		}
-		defer db.Close()
-
-		psqlRepo := repo.NewURLPsqlRepo(db)
-
-		err = psqlRepo.Bootstrap(context.Background())
-		if err != nil {
-			log.Error().Err(err).Msg("Database bootstrap failed")
-			panic(err)
-		}
-
-		urlRepo = psqlRepo
+		urlRepo = repo.NewURLPsqlRepo(db)
 	} else {
 		memoRepo := repo.NewURLMemoRepo()
 		cancel := prepareMemoryURLRepo(memoRepo, cfg, log)
