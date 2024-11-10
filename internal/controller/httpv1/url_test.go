@@ -2,8 +2,8 @@ package httpv1
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,52 +11,36 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang/mock/gomock"
 	"github.com/llravell/go-shortener/internal/entity"
+	"github.com/llravell/go-shortener/internal/mocks"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	Hash            = "ABC"
-	URL             = "https://example.ru/"
-	BaseRedirectURL = "http://localhost:8080"
-)
-
-var redirectURL = fmt.Sprintf("%s/%s", BaseRedirectURL, Hash)
-
 var errNotFound = errors.New("not found")
 
-type MockHashGenerator struct{}
-
-func (g MockHashGenerator) Generate() (string, error) {
-	return Hash, nil
+type testCase struct {
+	name         string
+	method       string
+	path         string
+	prepareMocks func()
+	body         io.Reader
+	expectedCode int
+	expectedBody string
 }
 
-type MockRepo struct {
-	m map[string]*entity.URL
-}
+func toJSON(t *testing.T, m any) string {
+	t.Helper()
 
-func (g *MockRepo) Store(_ context.Context, url *entity.URL) (*entity.URL, error) {
-	return url, nil
-}
+	data, err := json.Marshal(m)
+	require.NoError(t, err)
 
-func (g *MockRepo) GetList() []*entity.URL {
-	return []*entity.URL{}
-}
+	data = append(data, '\n')
 
-func (g *MockRepo) StoreMultiple(_ context.Context, _ []*entity.URL) error {
-	return nil
-}
-
-func (g *MockRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
-	v, ok := g.m[hash]
-	if !ok {
-		return nil, errNotFound
-	}
-
-	return v, nil
+	return string(data)
 }
 
 func testRequest(
@@ -80,17 +64,8 @@ func testRequest(
 	return res, string(b)
 }
 
-//nolint:funlen
-func TestURL(t *testing.T) {
-	gen := MockHashGenerator{}
-	repo := &MockRepo{map[string]*entity.URL{
-		Hash: {
-			Short:    Hash,
-			Original: redirectURL,
-		},
-	}}
-
-	urlUseCase := usecase.NewURLUseCase(repo, gen, BaseRedirectURL)
+func prepareTestServer(gen usecase.HashGenerator, repo usecase.URLRepo) *httptest.Server {
+	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
 	router := chi.NewRouter()
 	logger := zerolog.Nop()
 	newURLRoutes(router, urlUseCase, logger)
@@ -99,60 +74,161 @@ func TestURL(t *testing.T) {
 	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
+
+	return ts
+}
+
+//nolint:funlen
+func TestURLBaseRoutes(t *testing.T) {
+	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
+	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+
+	gen.EXPECT().Generate().AnyTimes()
+
+	ts := prepareTestServer(gen, repo)
 	defer ts.Close()
 
-	testCases := []struct {
-		name         string
-		method       string
-		path         string
-		body         io.Reader
-		expectedCode int
-		expectedBody string
-	}{
+	testCases := []testCase{
 		{
-			name:         "[legacy] sending url",
-			method:       http.MethodPost,
-			path:         "/",
-			body:         strings.NewReader(URL),
+			name:   "[legacy] sending url",
+			method: http.MethodPost,
+			path:   "/",
+			prepareMocks: func() {
+				repo.EXPECT().
+					Store(gomock.Any(), gomock.Any()).
+					Return(&entity.URL{Short: "a"}, nil)
+			},
+			body:         strings.NewReader("https://a.ru"),
 			expectedCode: http.StatusCreated,
-			expectedBody: fmt.Sprintf("%s/%s", BaseRedirectURL, Hash),
+			expectedBody: "http://localhost:8080/a",
 		},
 		{
 			name:         "[legacy] sending empty payload",
 			method:       http.MethodPost,
 			path:         "/",
+			prepareMocks: func() {},
 			expectedCode: http.StatusBadRequest,
 		},
 		{
-			name:         "Sending url",
-			method:       http.MethodPost,
-			path:         "/api/shorten",
-			body:         strings.NewReader(fmt.Sprintf(`{"url":"%s"}`, URL)),
+			name:   "Sending url",
+			method: http.MethodPost,
+			path:   "/api/shorten",
+			body:   strings.NewReader(toJSON(t, map[string]string{"url": "https://a.ru"})),
+			prepareMocks: func() {
+				repo.EXPECT().
+					Store(gomock.Any(), gomock.Any()).
+					Return(&entity.URL{Short: "a"}, nil)
+			},
 			expectedCode: http.StatusCreated,
-			expectedBody: fmt.Sprintf("{\"result\":\"%s\"}\n", redirectURL),
+			expectedBody: toJSON(t, map[string]string{"result": "http://localhost:8080/a"}),
 		},
 		{
 			name:         "Sending empty payload",
 			method:       http.MethodPost,
 			path:         "/api/shorten",
+			prepareMocks: func() {},
 			expectedCode: http.StatusBadRequest,
 		},
 		{
-			name:         "Redirect on url",
-			method:       http.MethodGet,
-			path:         "/" + Hash,
+			name:   "Redirect on url",
+			method: http.MethodGet,
+			path:   "/a",
+			prepareMocks: func() {
+				repo.EXPECT().
+					Get(gomock.Any(), "a").
+					Return(&entity.URL{Original: "https://a.ru"}, nil)
+			},
 			expectedCode: http.StatusTemporaryRedirect,
 		},
 		{
-			name:         "Failed redirect",
-			method:       http.MethodGet,
-			path:         "/not_existed_hash",
+			name:   "Failed redirect",
+			method: http.MethodGet,
+			path:   "/not_existed_hash",
+			prepareMocks: func() {
+				repo.EXPECT().
+					Get(gomock.Any(), "not_existed_hash").
+					Return(nil, errNotFound)
+			},
 			expectedCode: http.StatusBadRequest,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			tc.prepareMocks()
+
+			res, body := testRequest(t, ts, tc.method, tc.path, tc.body)
+			defer res.Body.Close()
+
+			assert.Equal(t, tc.expectedCode, res.StatusCode)
+
+			if tc.expectedBody != "" {
+				assert.Equal(t, tc.expectedBody, body)
+			}
+		})
+	}
+}
+
+//nolint:funlen
+func TestURLBatchRoute(t *testing.T) {
+	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
+	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+
+	ts := prepareTestServer(gen, repo)
+	defer ts.Close()
+
+	testCases := []testCase{
+		{
+			name:   "Sending several urls",
+			method: http.MethodPost,
+			path:   "/api/shorten/batch",
+			body: strings.NewReader(toJSON(t, []map[string]string{
+				{
+					"correlation_id": "1",
+					"original_url":   "https://a.ru",
+				},
+				{
+					"correlation_id": "2",
+					"original_url":   "https://b.ru",
+				},
+			})),
+			prepareMocks: func() {
+				gomock.InOrder(
+					gen.EXPECT().Generate().Return("a", nil),
+					gen.EXPECT().Generate().Return("b", nil),
+				)
+
+				repo.EXPECT().
+					StoreMultiple(gomock.Any(), gomock.Any()).
+					Return(nil)
+			},
+			expectedCode: http.StatusCreated,
+			expectedBody: toJSON(t, []map[string]string{
+				{
+					"correlation_id": "1",
+					"short_url":      "http://localhost:8080/a",
+				},
+				{
+					"correlation_id": "2",
+					"short_url":      "http://localhost:8080/b",
+				},
+			}),
+		},
+		{
+			name:         "Sending empty urls",
+			method:       http.MethodPost,
+			path:         "/api/shorten/batch",
+			body:         strings.NewReader(toJSON(t, []any{})),
+			prepareMocks: func() {},
+			expectedCode: http.StatusCreated,
+			expectedBody: toJSON(t, []any{}),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.prepareMocks()
+
 			res, body := testRequest(t, ts, tc.method, tc.path, tc.body)
 			defer res.Body.Close()
 
