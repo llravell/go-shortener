@@ -12,6 +12,10 @@ type URLRepo interface {
 	Get(ctx context.Context, hash string) (*entity.URL, error)
 }
 
+type HealthRepo interface {
+	PingContext(ctx context.Context) error
+}
+
 type HashGenerator interface {
 	Generate() (string, error)
 }

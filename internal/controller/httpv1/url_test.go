@@ -1,10 +1,8 @@
-package httpv1
+package httpv1_test
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
+	"github.com/llravell/go-shortener/internal/controller/httpv1"
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/mocks"
 	"github.com/llravell/go-shortener/internal/usecase"
@@ -21,16 +20,6 @@ import (
 )
 
 var errNotFound = errors.New("not found")
-
-type testCase struct {
-	name         string
-	method       string
-	path         string
-	prepareMocks func()
-	body         io.Reader
-	expectedCode int
-	expectedBody string
-}
 
 func toJSON(t *testing.T, m any) string {
 	t.Helper()
@@ -43,32 +32,11 @@ func toJSON(t *testing.T, m any) string {
 	return string(data)
 }
 
-func testRequest(
-	t *testing.T,
-	ts *httptest.Server,
-	method string,
-	path string,
-	body io.Reader,
-) (*http.Response, string) {
-	t.Helper()
-
-	req, err := http.NewRequestWithContext(context.Background(), method, ts.URL+path, body)
-	require.NoError(t, err)
-
-	res, err := ts.Client().Do(req)
-	require.NoError(t, err)
-
-	b, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	return res, string(b)
-}
-
 func prepareTestServer(gen usecase.HashGenerator, repo usecase.URLRepo) *httptest.Server {
 	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
 	router := chi.NewRouter()
 	logger := zerolog.Nop()
-	newURLRoutes(router, urlUseCase, logger)
+	httpv1.NewURLRoutes(router, urlUseCase, logger)
 
 	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
@@ -157,7 +125,7 @@ func TestURLBaseRoutes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.prepareMocks()
 
-			res, body := testRequest(t, ts, tc.method, tc.path, tc.body)
+			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body)
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
@@ -229,7 +197,7 @@ func TestURLBatchRoute(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.prepareMocks()
 
-			res, body := testRequest(t, ts, tc.method, tc.path, tc.body)
+			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body)
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)

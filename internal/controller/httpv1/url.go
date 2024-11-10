@@ -34,7 +34,7 @@ type URLBatchResponseItem struct {
 	ShortURL      string `json:"short_url"`
 }
 
-func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
+func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
 	routes := &urlRoutes{u, l}
 
 	r.Get("/{id}", routes.resolveURL)

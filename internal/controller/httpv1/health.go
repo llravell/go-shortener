@@ -13,7 +13,7 @@ type healthRoutes struct {
 	log zerolog.Logger
 }
 
-func newHealthRoutes(r chi.Router, h *usecase.HealthUseCase, l zerolog.Logger) {
+func NewHealthRoutes(r chi.Router, h *usecase.HealthUseCase, l zerolog.Logger) {
 	routes := &healthRoutes{h, l}
 
 	r.Get("/ping", routes.ping)

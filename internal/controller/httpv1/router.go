@@ -16,8 +16,8 @@ func NewRouter(
 
 	router.Use(middleware.LoggerMiddleware(log))
 
-	newHealthRoutes(router, healthUseCase, log)
-	newURLRoutes(router, urlUseCase, log)
+	NewHealthRoutes(router, healthUseCase, log)
+	NewURLRoutes(router, urlUseCase, log)
 
 	return router
 }
