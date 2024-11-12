@@ -14,6 +14,7 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/mocks"
 	"github.com/llravell/go-shortener/internal/usecase"
+	repository "github.com/llravell/go-shortener/internal/usecase/repo"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,6 +65,19 @@ func TestURLBaseRoutes(t *testing.T) {
 			prepareMocks: func() {
 				repo.EXPECT().
 					Store(gomock.Any(), gomock.Any()).
+					Return(&entity.URL{Short: "a"}, repository.ErrOriginalURLConflict)
+			},
+			body:         strings.NewReader("https://a.ru"),
+			expectedCode: http.StatusConflict,
+			expectedBody: "http://localhost:8080/a",
+		},
+		{
+			name:   "[legacy] sending already existed url",
+			method: http.MethodPost,
+			path:   "/",
+			prepareMocks: func() {
+				repo.EXPECT().
+					Store(gomock.Any(), gomock.Any()).
 					Return(&entity.URL{Short: "a"}, nil)
 			},
 			body:         strings.NewReader("https://a.ru"),
@@ -88,6 +102,19 @@ func TestURLBaseRoutes(t *testing.T) {
 					Return(&entity.URL{Short: "a"}, nil)
 			},
 			expectedCode: http.StatusCreated,
+			expectedBody: toJSON(t, map[string]string{"result": "http://localhost:8080/a"}),
+		},
+		{
+			name:   "Sending already existed url",
+			method: http.MethodPost,
+			path:   "/api/shorten",
+			body:   strings.NewReader(toJSON(t, map[string]string{"url": "https://a.ru"})),
+			prepareMocks: func() {
+				repo.EXPECT().
+					Store(gomock.Any(), gomock.Any()).
+					Return(&entity.URL{Short: "a"}, repository.ErrOriginalURLConflict)
+			},
+			expectedCode: http.StatusConflict,
 			expectedBody: toJSON(t, map[string]string{"result": "http://localhost:8080/a"}),
 		},
 		{

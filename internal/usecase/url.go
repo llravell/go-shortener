@@ -2,10 +2,14 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/llravell/go-shortener/internal/entity"
+	"github.com/llravell/go-shortener/internal/usecase/repo"
 )
+
+var ErrURLDuplicate = errors.New("duplicate url")
 
 type URLUseCase struct {
 	repo            URLRepo
@@ -29,7 +33,12 @@ func (uc *URLUseCase) SaveURL(ctx context.Context, url string) (*entity.URL, err
 
 	urlObj := &entity.URL{Original: url, Short: hash}
 
-	return uc.repo.Store(ctx, urlObj)
+	storedURL, err := uc.repo.Store(ctx, urlObj)
+	if errors.Is(err, repo.ErrOriginalURLConflict) {
+		return storedURL, ErrURLDuplicate
+	}
+
+	return storedURL, err
 }
 
 func (uc *URLUseCase) SaveURLMultiple(ctx context.Context, urls []string) ([]*entity.URL, error) {

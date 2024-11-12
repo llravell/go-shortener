@@ -2,6 +2,7 @@ package httpv1
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -63,9 +64,13 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 
 	urlObj, err := ur.u.SaveURL(r.Context(), url)
 	if err != nil {
-		http.Error(w, "saving url failed", http.StatusInternalServerError)
+		if errors.Is(err, usecase.ErrURLDuplicate) {
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			http.Error(w, "saving url failed", http.StatusInternalServerError)
 
-		return
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -87,9 +92,13 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 
 	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL)
 	if err != nil {
-		http.Error(w, "saving url failed", http.StatusInternalServerError)
+		if errors.Is(err, usecase.ErrURLDuplicate) {
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			http.Error(w, "saving url failed", http.StatusInternalServerError)
 
-		return
+			return
+		}
 	}
 
 	resp := saveURLResponse{

@@ -3,45 +3,49 @@ package repo
 import (
 	"context"
 	"database/sql"
-	"time"
+	"errors"
 
 	"github.com/llravell/go-shortener/internal/entity"
-)
-
-const (
-	_queryTimeout     = 10 * time.Second
-	_execTimeout      = 20 * time.Second
-	_bootstrapTimeout = time.Minute
 )
 
 type URLPsqlRepo struct {
 	conn *sql.DB
 }
 
+var ErrOriginalURLConflict = errors.New("url already exists")
+
 func NewURLPsqlRepo(conn *sql.DB) *URLPsqlRepo {
 	return &URLPsqlRepo{conn: conn}
 }
 
 func (u *URLPsqlRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
-	ctx, cancel := context.WithTimeout(ctx, _queryTimeout)
-	defer cancel()
+	storedURL, err := u.getByOriginalURL(ctx, url.Original)
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
 
-	_, err := u.conn.ExecContext(ctx, `
+	if storedURL != nil {
+		return storedURL, ErrOriginalURLConflict
+	}
+
+	row := u.conn.QueryRowContext(ctx, `
 		INSERT INTO urls (url, short)
 		VALUES
-			($1, $2);
+			($1, $2)
+		RETURNING uuid, url, short;
 	`, url.Original, url.Short)
+
+	var returnedURL entity.URL
+
+	err = row.Scan(&returnedURL.UUID, &returnedURL.Original, &returnedURL.Short)
 	if err != nil {
 		return nil, err
 	}
 
-	return u.Get(ctx, url.Short)
+	return &returnedURL, nil
 }
 
 func (u *URLPsqlRepo) StoreMultiple(ctx context.Context, urls []*entity.URL) error {
-	ctx, cancel := context.WithTimeout(ctx, _execTimeout)
-	defer cancel()
-
 	tx, err := u.conn.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -66,13 +70,27 @@ func (u *URLPsqlRepo) StoreMultiple(ctx context.Context, urls []*entity.URL) err
 }
 
 func (u *URLPsqlRepo) Get(ctx context.Context, hash string) (*entity.URL, error) {
-	ctx, cancel := context.WithTimeout(ctx, _queryTimeout)
-	defer cancel()
-
 	row := u.conn.QueryRowContext(
 		ctx,
 		"SELECT uuid, url, short FROM urls WHERE short=$1",
 		hash,
+	)
+
+	var url entity.URL
+
+	err := row.Scan(&url.UUID, &url.Original, &url.Short)
+	if err != nil {
+		return nil, err
+	}
+
+	return &url, nil
+}
+
+func (u *URLPsqlRepo) getByOriginalURL(ctx context.Context, originalURL string) (*entity.URL, error) {
+	row := u.conn.QueryRowContext(
+		ctx,
+		"SELECT uuid, url, short FROM urls WHERE url=$1",
+		originalURL,
 	)
 
 	var url entity.URL

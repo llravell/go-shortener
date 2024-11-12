@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const pintTimeout = time.Second * 30
+const pingTimeout = time.Second * 30
 
 var ErrHasNotConnection = errors.New("has not db connection")
 
@@ -25,7 +25,7 @@ func (h HealthUseCase) PingContext(ctx context.Context) error {
 		return ErrHasNotConnection
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, pintTimeout)
+	ctx, cancel := context.WithTimeout(ctx, pingTimeout)
 	defer cancel()
 
 	return h.repo.PingContext(ctx)
