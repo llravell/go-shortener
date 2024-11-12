@@ -20,7 +20,7 @@ func NewURLPsqlRepo(conn *sql.DB) *URLPsqlRepo {
 
 func (u *URLPsqlRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
 	storedURL, err := u.getByOriginalURL(ctx, url.Original)
-	if !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 
