@@ -93,6 +93,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL)
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusConflict)
 		} else {
 			http.Error(w, "saving url failed", http.StatusInternalServerError)
