@@ -62,7 +62,7 @@ func Get() zerolog.Logger {
 	return log
 }
 
-func Shutdown() {
+func Close() {
 	if logFile != nil {
 		logFile.Close()
 	}

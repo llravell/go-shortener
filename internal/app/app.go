@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/llravell/go-shortener/internal/usecase/repo"
 	"github.com/llravell/go-shortener/logger"
+	"github.com/rs/zerolog"
 )
 
 func startServer(cfg *config.Config, handler http.Handler) error {
@@ -26,31 +28,68 @@ func startServer(cfg *config.Config, handler http.Handler) error {
 	return server.ListenAndServe()
 }
 
-func Run(cfg *config.Config) {
-	log := logger.Get()
-
-	urlStorage := repo.NewURLStorage()
+func prepareMemoryURLRepo(
+	memoRepo *repo.URLMemoRepo,
+	cfg *config.Config,
+	log zerolog.Logger,
+) func() error {
 	backup, err := repo.NewURLBackup(cfg.FileStoragePath)
-
 	if err != nil {
-		log.Error().Err(err).Msg("Backup initialize failed")
-	} else {
-		urls, err := backup.Restore()
-		if err != nil {
-			log.Error().Err(err).Msg("Backup restore failed")
-		}
-
-		urlStorage.Init(urls)
+		log.Error().Err(err).Msg("backup initialize failed")
+		os.Exit(1)
 	}
 
+	urls, err := backup.Restore()
+	if err != nil {
+		log.Error().Err(err).Msg("backup restore failed")
+	}
+
+	memoRepo.Init(urls)
+
+	return func() error {
+		err := backup.Store(memoRepo.GetList())
+		if err != nil {
+			log.Error().Err(err).Msg("backup store failed")
+		}
+
+		return backup.Close()
+	}
+}
+
+func Run(cfg *config.Config, db *sql.DB) {
+	log := logger.Get()
+	defer logger.Close()
+
+	var err error
+
+	var urlRepo usecase.URLRepo
+
+	if cfg.DatabaseDsn != "" {
+		urlRepo = repo.NewURLDatabaseRepo(db)
+	} else {
+		memoRepo := repo.NewURLMemoRepo()
+		cancel := prepareMemoryURLRepo(memoRepo, cfg, log)
+		urlRepo = memoRepo
+
+		defer func() {
+			err = cancel()
+			if err != nil {
+				log.Error().Err(err).Msg("backup cancel failed")
+			}
+		}()
+	}
+
+	healthUseCase := usecase.NewHealthUseCase(db)
+
 	urlUseCase := usecase.NewURLUseCase(
-		urlStorage,
+		urlRepo,
 		entity.NewRandomStringGenerator(),
 		cfg.BaseAddr,
 	)
 
 	router := httpv1.NewRouter(
 		urlUseCase,
+		healthUseCase,
 		log,
 	)
 
@@ -65,26 +104,12 @@ func Run(cfg *config.Config) {
 
 	log.Info().
 		Str("addr", cfg.Addr).
-		Msgf("Starting shortener server on '%s'", cfg.Addr)
+		Msgf("starting shortener server on '%s'", cfg.Addr)
 
 	select {
 	case s := <-interrupt:
 		log.Info().Str("signal", s.String()).Msg("interrupt")
 	case err = <-serverNorify:
-		log.Error().Err(err).Msg("Shortener server has been closed")
+		log.Error().Err(err).Msg("shortener server has been closed")
 	}
-
-	if backup != nil {
-		err = backup.Store(urlStorage.GetList())
-		if err != nil {
-			log.Error().Err(err).Msg("Backup store failed")
-		}
-
-		err = backup.Close()
-		if err != nil {
-			log.Error().Err(err).Msg("Backup close failed")
-		}
-	}
-
-	logger.Shutdown()
 }

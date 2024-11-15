@@ -2,6 +2,7 @@ package httpv1
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -24,7 +25,17 @@ type saveURLResponse struct {
 	Result string `json:"result"`
 }
 
-func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
+type URLBatchRequestItem struct {
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
+}
+
+type URLBatchResponseItem struct {
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
+}
+
+func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
 	routes := &urlRoutes{u, l}
 
 	r.Get("/{id}", routes.resolveURL)
@@ -34,7 +45,10 @@ func newURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
 		r.Use(middleware.CompressMiddleware("application/json"))
 		r.Use(middleware.DecompressMiddleware())
 
-		r.Post("/shorten", routes.saveURL)
+		r.Route("/shorten", func(r chi.Router) {
+			r.Post("/", routes.saveURL)
+			r.Post("/batch", routes.saveURLMultiple)
+		})
 	})
 }
 
@@ -48,11 +62,15 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(url)
+	urlObj, err := ur.u.SaveURL(r.Context(), url)
 	if err != nil {
-		http.Error(w, "saving url failed", http.StatusInternalServerError)
+		if errors.Is(err, usecase.ErrURLDuplicate) {
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			http.Error(w, "saving url failed", http.StatusInternalServerError)
 
-		return
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -72,11 +90,16 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(urlReq.URL)
+	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL)
 	if err != nil {
-		http.Error(w, "saving url failed", http.StatusInternalServerError)
+		if errors.Is(err, usecase.ErrURLDuplicate) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+		} else {
+			http.Error(w, "saving url failed", http.StatusInternalServerError)
 
-		return
+			return
+		}
 	}
 
 	resp := saveURLResponse{
@@ -92,10 +115,51 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
+	var batchItems []URLBatchRequestItem
+
+	if err := json.NewDecoder(r.Body).Decode(&batchItems); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+
+		return
+	}
+
+	urls := make([]string, 0, len(batchItems))
+	for _, item := range batchItems {
+		urls = append(urls, item.OriginalURL)
+	}
+
+	urlObjs, err := ur.u.SaveURLMultiple(r.Context(), urls)
+	if err != nil {
+		http.Error(w, "saving url failed", http.StatusInternalServerError)
+
+		return
+	}
+
+	responseItems := make([]URLBatchResponseItem, 0, len(batchItems))
+
+	for i, urlObj := range urlObjs {
+		item := URLBatchResponseItem{
+			CorrelationID: batchItems[i].CorrelationID,
+			ShortURL:      ur.u.BuildRedirectURL(urlObj),
+		}
+
+		responseItems = append(responseItems, item)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	err = json.NewEncoder(w).Encode(responseItems)
+	if err != nil {
+		ur.log.Err(err).Msg("response write has been failed")
+	}
+}
+
 func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	hash := r.PathValue(`id`)
 
-	url, err := ur.u.ResolveURL(hash)
+	url, err := ur.u.ResolveURL(r.Context(), hash)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 
