@@ -9,8 +9,9 @@ bin/
 # Test binary, built with `go test -c`
 *.test
 
-# Logs
+# Local files
 *.log
+*.env
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out

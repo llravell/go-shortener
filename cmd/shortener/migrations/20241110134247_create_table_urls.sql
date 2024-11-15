@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS urls (
+CREATE TABLE IF urls (
   uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   url VARCHAR(2048) NOT NULL,
   short VARCHAR(50) UNIQUE NOT NULL,

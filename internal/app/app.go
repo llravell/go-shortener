@@ -35,13 +35,13 @@ func prepareMemoryURLRepo(
 ) func() error {
 	backup, err := repo.NewURLBackup(cfg.FileStoragePath)
 	if err != nil {
-		log.Error().Err(err).Msg("Backup initialize failed")
-		panic(err)
+		log.Error().Err(err).Msg("backup initialize failed")
+		os.Exit(1)
 	}
 
 	urls, err := backup.Restore()
 	if err != nil {
-		log.Error().Err(err).Msg("Backup restore failed")
+		log.Error().Err(err).Msg("backup restore failed")
 	}
 
 	memoRepo.Init(urls)
@@ -49,7 +49,7 @@ func prepareMemoryURLRepo(
 	return func() error {
 		err := backup.Store(memoRepo.GetList())
 		if err != nil {
-			log.Error().Err(err).Msg("Backup store failed")
+			log.Error().Err(err).Msg("backup store failed")
 		}
 
 		return backup.Close()
@@ -65,7 +65,7 @@ func Run(cfg *config.Config, db *sql.DB) {
 	var urlRepo usecase.URLRepo
 
 	if cfg.DatabaseDsn != "" {
-		urlRepo = repo.NewURLPsqlRepo(db)
+		urlRepo = repo.NewURLDatabaseRepo(db)
 	} else {
 		memoRepo := repo.NewURLMemoRepo()
 		cancel := prepareMemoryURLRepo(memoRepo, cfg, log)
@@ -73,6 +73,9 @@ func Run(cfg *config.Config, db *sql.DB) {
 
 		defer func() {
 			err = cancel()
+			if err != nil {
+				log.Error().Err(err).Msg("backup cancel failed")
+			}
 		}()
 	}
 
@@ -101,12 +104,12 @@ func Run(cfg *config.Config, db *sql.DB) {
 
 	log.Info().
 		Str("addr", cfg.Addr).
-		Msgf("Starting shortener server on '%s'", cfg.Addr)
+		Msgf("starting shortener server on '%s'", cfg.Addr)
 
 	select {
 	case s := <-interrupt:
 		log.Info().Str("signal", s.String()).Msg("interrupt")
 	case err = <-serverNorify:
-		log.Error().Err(err).Msg("Shortener server has been closed")
+		log.Error().Err(err).Msg("shortener server has been closed")
 	}
 }

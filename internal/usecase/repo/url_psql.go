@@ -8,17 +8,17 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
-type URLPsqlRepo struct {
+type URLDatabaseRepo struct {
 	conn *sql.DB
 }
 
 var ErrOriginalURLConflict = errors.New("url already exists")
 
-func NewURLPsqlRepo(conn *sql.DB) *URLPsqlRepo {
-	return &URLPsqlRepo{conn: conn}
+func NewURLDatabaseRepo(conn *sql.DB) *URLDatabaseRepo {
+	return &URLDatabaseRepo{conn: conn}
 }
 
-func (u *URLPsqlRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
+func (u *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
 	storedURL, err := u.getByOriginalURL(ctx, url.Original)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
@@ -45,7 +45,7 @@ func (u *URLPsqlRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, 
 	return &returnedURL, nil
 }
 
-func (u *URLPsqlRepo) StoreMultiple(ctx context.Context, urls []*entity.URL) error {
+func (u *URLDatabaseRepo) StoreMultiple(ctx context.Context, urls []*entity.URL) error {
 	tx, err := u.conn.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func (u *URLPsqlRepo) StoreMultiple(ctx context.Context, urls []*entity.URL) err
 	return tx.Commit()
 }
 
-func (u *URLPsqlRepo) Get(ctx context.Context, hash string) (*entity.URL, error) {
+func (u *URLDatabaseRepo) Get(ctx context.Context, hash string) (*entity.URL, error) {
 	row := u.conn.QueryRowContext(
 		ctx,
 		"SELECT uuid, url, short FROM urls WHERE short=$1",
@@ -86,7 +86,7 @@ func (u *URLPsqlRepo) Get(ctx context.Context, hash string) (*entity.URL, error)
 	return &url, nil
 }
 
-func (u *URLPsqlRepo) getByOriginalURL(ctx context.Context, originalURL string) (*entity.URL, error) {
+func (u *URLDatabaseRepo) getByOriginalURL(ctx context.Context, originalURL string) (*entity.URL, error) {
 	row := u.conn.QueryRowContext(
 		ctx,
 		"SELECT uuid, url, short FROM urls WHERE url=$1",
