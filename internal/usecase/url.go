@@ -32,7 +32,6 @@ func (uc *URLUseCase) SaveURL(ctx context.Context, url string, userUUID string) 
 	}
 
 	urlObj := &entity.URL{Original: url, Short: hash, UserUUID: userUUID}
-	fmt.Println(urlObj)
 
 	storedURL, err := uc.repo.Store(ctx, urlObj)
 	if errors.Is(err, repo.ErrOriginalURLConflict) {

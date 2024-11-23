@@ -36,8 +36,8 @@ type URLBatchResponseItem struct {
 }
 
 type UserURLItem struct {
-	ShortUrl    string `json:"short_url"`
-	OriginalUrl string `json:"original_url"`
+	ShortURL    string `json:"short_url"`
+	OriginalURL string `json:"original_url"`
 }
 
 func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, jwtSecret string, l zerolog.Logger) {
@@ -218,8 +218,8 @@ func (ur *urlRoutes) getUserURLS(w http.ResponseWriter, r *http.Request) {
 
 	for _, urlObj := range userURLS {
 		item := UserURLItem{
-			OriginalUrl: urlObj.Original,
-			ShortUrl:    ur.u.BuildRedirectURL(urlObj),
+			OriginalURL: urlObj.Original,
+			ShortURL:    ur.u.BuildRedirectURL(urlObj),
 		}
 
 		responseItems = append(responseItems, item)

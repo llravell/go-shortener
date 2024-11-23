@@ -248,6 +248,7 @@ func TestURLUserRoutes(t *testing.T) {
 		res, _ := testutils.SendTestRequest(
 			t, ts, ts.Client(), http.MethodGet, "/api/user/urls", http.NoBody, map[string]string{},
 		)
+		defer res.Body.Close()
 
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 	})
@@ -260,6 +261,7 @@ func TestURLUserRoutes(t *testing.T) {
 		res, _ := testutils.SendTestRequest(
 			t, ts, testutils.AuthorizedClient(t, ts), http.MethodGet, "/api/user/urls", http.NoBody, map[string]string{},
 		)
+		defer res.Body.Close()
 
 		assert.Equal(t, http.StatusNoContent, res.StatusCode)
 	})
@@ -277,11 +279,12 @@ func TestURLUserRoutes(t *testing.T) {
 		res, body := testutils.SendTestRequest(
 			t, ts, testutils.AuthorizedClient(t, ts), http.MethodGet, "/api/user/urls", http.NoBody, map[string]string{},
 		)
+		defer res.Body.Close()
 
 		expectedBody := toJSON(t, []httpv1.UserURLItem{
 			{
-				ShortUrl:    "http://localhost:8080/a",
-				OriginalUrl: "https://a.ru",
+				ShortURL:    "http://localhost:8080/a",
+				OriginalURL: "https://a.ru",
 			},
 		})
 

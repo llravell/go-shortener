@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/llravell/go-shortener/internal/entity"
 )
@@ -16,11 +15,6 @@ const (
 type contextKey string
 
 var UserUUIDContextKey contextKey = "userUUID"
-
-type authClaims struct {
-	jwt.RegisteredClaims
-	UserUUID string
-}
 
 type Auth struct {
 	secret []byte

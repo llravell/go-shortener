@@ -56,6 +56,7 @@ func TestProvideJWTMiddleware(t *testing.T) {
 		authToken := findAuthTokenCookie(t, client.Jar.Cookies(tsURL)).Value
 
 		res, _ := testutils.SendTestRequest(t, ts, client, http.MethodPost, "/", http.NoBody, map[string]string{})
+		defer res.Body.Close()
 
 		assert.Nil(t, findAuthTokenCookie(t, res.Cookies()))
 		assert.Equal(t, authToken, findAuthTokenCookie(t, client.Jar.Cookies(tsURL)).Value)
@@ -71,6 +72,7 @@ func TestProvideJWTMiddleware(t *testing.T) {
 		client.Jar.SetCookies(tsURL, []*http.Cookie{authCookie})
 
 		res, _ := testutils.SendTestRequest(t, ts, client, http.MethodPost, "/", http.NoBody, map[string]string{})
+		defer res.Body.Close()
 
 		updatedAuthCookie := findAuthTokenCookie(t, res.Cookies())
 		assert.NotEmpty(t, updatedAuthCookie.Value)
@@ -98,6 +100,7 @@ func TestCheckJWTMiddleware(t *testing.T) {
 		res, _ := testutils.SendTestRequest(
 			t, ts, testutils.AuthorizedClient(t, ts), http.MethodPost, "/", http.NoBody, map[string]string{},
 		)
+		defer res.Body.Close()
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 	})
