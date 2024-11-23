@@ -50,6 +50,21 @@ func (mr *MockURLRepoMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockURLRepo)(nil).Get), arg0, arg1)
 }
 
+// GetByUserUUID mocks base method.
+func (m *MockURLRepo) GetByUserUUID(arg0 context.Context, arg1 string) ([]*entity.URL, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByUserUUID", arg0, arg1)
+	ret0, _ := ret[0].([]*entity.URL)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByUserUUID indicates an expected call of GetByUserUUID.
+func (mr *MockURLRepoMockRecorder) GetByUserUUID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByUserUUID", reflect.TypeOf((*MockURLRepo)(nil).GetByUserUUID), arg0, arg1)
+}
+
 // Store mocks base method.
 func (m *MockURLRepo) Store(arg0 context.Context, arg1 *entity.URL) (*entity.URL, error) {
 	m.ctrl.T.Helper()

@@ -46,6 +46,18 @@ func (u *URLMemoRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
 	return url, nil
 }
 
+func (u *URLMemoRepo) GetByUserUUID(_ context.Context, userUUID string) ([]*entity.URL, error) {
+	urls := make([]*entity.URL, 0)
+
+	for _, url := range u.m {
+		if url.UserUUID == userUUID {
+			urls = append(urls, url)
+		}
+	}
+
+	return urls, nil
+}
+
 func (u *URLMemoRepo) GetList() []*entity.URL {
 	list := make([]*entity.URL, 0, len(u.m))
 

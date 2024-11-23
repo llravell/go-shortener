@@ -37,7 +37,7 @@ func prepareTestServer(gen usecase.HashGenerator, repo usecase.URLRepo) *httptes
 	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
 	router := chi.NewRouter()
 	logger := zerolog.Nop()
-	httpv1.NewURLRoutes(router, urlUseCase, logger)
+	httpv1.NewURLRoutes(router, urlUseCase, "secret", logger)
 
 	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {

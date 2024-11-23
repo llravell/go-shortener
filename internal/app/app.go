@@ -90,6 +90,7 @@ func Run(cfg *config.Config, db *sql.DB) {
 	router := httpv1.NewRouter(
 		urlUseCase,
 		healthUseCase,
+		cfg.JWTSecret,
 		log,
 	)
 

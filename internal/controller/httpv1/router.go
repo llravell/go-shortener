@@ -10,6 +10,7 @@ import (
 func NewRouter(
 	urlUseCase *usecase.URLUseCase,
 	healthUseCase *usecase.HealthUseCase,
+	jwtSecret string,
 	log zerolog.Logger,
 ) *chi.Mux {
 	router := chi.NewRouter()
@@ -17,7 +18,7 @@ func NewRouter(
 	router.Use(middleware.LoggerMiddleware(log))
 
 	NewHealthRoutes(router, healthUseCase, log)
-	NewURLRoutes(router, urlUseCase, log)
+	NewURLRoutes(router, urlUseCase, jwtSecret, log)
 
 	return router
 }

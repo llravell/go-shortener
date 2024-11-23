@@ -2,16 +2,14 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/llravell/go-shortener/internal/entity"
 )
 
 const (
-	tokenExp        = time.Hour * 3
 	TokenCookieName = "user-token"
 )
 
@@ -19,83 +17,81 @@ type contextKey string
 
 var UserUUIDContextKey contextKey = "userUUID"
 
-type auth struct {
-	secret []byte
-}
-
 type authClaims struct {
 	jwt.RegisteredClaims
 	UserUUID string
 }
 
-func (a auth) buildJWTString(userUUID string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, authClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
-		},
-		UserUUID: userUUID,
-	})
-
-	tokenString, err := token.SignedString(a.secret)
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
+type Auth struct {
+	secret []byte
 }
 
-func (a auth) parseUserUUIDFromRequest(r *http.Request) string {
+func (auth *Auth) parseUserUUIDFromRequest(r *http.Request) string {
 	tokenCookie, err := r.Cookie(TokenCookieName)
 	if err != nil {
 		return ""
 	}
 
-	claims := &authClaims{}
-
-	token, err := jwt.ParseWithClaims(tokenCookie.Value, claims, func(_ *jwt.Token) (interface{}, error) {
-		return a.secret, nil
-	})
-
-	if err != nil || !token.Valid {
+	claims, err := entity.ParseJWTString(tokenCookie.Value, auth.secret)
+	if err != nil || claims.Valid() != nil {
 		return ""
 	}
 
 	return claims.UserUUID
 }
 
-func (a auth) Handler(next http.Handler) http.Handler {
+func (auth *Auth) ProvideJWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userUUID := a.parseUserUUIDFromRequest(r)
-		fmt.Println("---->", userUUID)
+		userUUID := auth.parseUserUUIDFromRequest(r)
+		ctx := context.WithValue(r.Context(), UserUUIDContextKey, userUUID)
+
+		r = r.WithContext(ctx)
+
+		if userUUID != "" {
+			next.ServeHTTP(w, r)
+
+			return
+		}
+
+		userUUID = uuid.New().String()
+
+		jwtToken, err := entity.BuildJWTString(userUUID, auth.secret)
+		if err != nil {
+			next.ServeHTTP(w, r)
+
+			return
+		}
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     TokenCookieName,
+			MaxAge:   int(entity.JWTExpire.Seconds()),
+			HttpOnly: true,
+			Value:    jwtToken,
+		})
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (auth *Auth) CheckJWTMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userUUID := auth.parseUserUUIDFromRequest(r)
 
 		if userUUID == "" {
-			userUUID = uuid.New().String()
+			w.WriteHeader(http.StatusUnauthorized)
 
-			jwtToken, err := a.buildJWTString(userUUID)
-			if err != nil {
-				next.ServeHTTP(w, r)
-
-				return
-			}
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     TokenCookieName,
-				MaxAge:   int(tokenExp.Seconds()),
-				HttpOnly: true,
-				Value:    jwtToken,
-			})
+			return
 		}
 
 		ctx := context.WithValue(r.Context(), UserUUIDContextKey, userUUID)
-
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-func AuthMiddleware(secretKey string) func(next http.Handler) http.Handler {
-	a := auth{
+func NewAuth(secretKey string) *Auth {
+	auth := &Auth{
 		secret: []byte(secretKey),
 	}
 
-	return a.Handler
+	return auth
 }

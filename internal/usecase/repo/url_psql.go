@@ -29,11 +29,11 @@ func (u *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.U
 	}
 
 	row := u.conn.QueryRowContext(ctx, `
-		INSERT INTO urls (url, short)
+		INSERT INTO urls (url, short, user_uuid)
 		VALUES
-			($1, $2)
+			($1, $2, $3)
 		RETURNING uuid, url, short;
-	`, url.Original, url.Short)
+	`, url.Original, url.Short, url.UserUUID)
 
 	var returnedURL entity.URL
 
@@ -57,10 +57,10 @@ func (u *URLDatabaseRepo) StoreMultiple(ctx context.Context, urls []*entity.URL)
 
 	for _, url := range urls {
 		_, err := tx.ExecContext(ctx, `
-			INSERT INTO urls (url, short)
+			INSERT INTO urls (url, short, user_uuid)
 			VALUES
-				($1, $2);
-		`, url.Original, url.Short)
+				($1, $2, $3);
+		`, url.Original, url.Short, url.UserUUID)
 		if err != nil {
 			return err
 		}
@@ -84,6 +84,43 @@ func (u *URLDatabaseRepo) Get(ctx context.Context, hash string) (*entity.URL, er
 	}
 
 	return &url, nil
+}
+
+func (u *URLDatabaseRepo) GetByUserUUID(ctx context.Context, userUUID string) ([]*entity.URL, error) {
+	urls := make([]*entity.URL, 0)
+
+	rows, err := u.conn.QueryContext(
+		ctx,
+		"SELECT uuid, url, short FROM urls WHERE user_uuid=$1",
+		userUUID,
+	)
+	if err != nil {
+		return urls, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var url entity.URL
+
+		err = rows.Scan(&url.UUID, &url.Original, &url.Short)
+		if err != nil {
+			return urls, err
+		}
+
+		urls = append(urls, &url)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return urls, nil
+		}
+
+		return urls, err
+	}
+
+	return urls, nil
 }
 
 func (u *URLDatabaseRepo) getByOriginalURL(ctx context.Context, originalURL string) (*entity.URL, error) {

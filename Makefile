@@ -11,6 +11,10 @@ run: ### run app in dev mode
 lint: ### run linter
 	golangci-lint run ./...
 
+.PHONY: migrate-up
+migrate-up: ### run migrations
+	bin/goose up
+
 .PHONY: reqs
 reqs: ### install binary deps to bin/
 	GOBIN=$(LOCAL_BIN) go install github.com/golang/mock/mockgen@latest

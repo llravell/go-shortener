@@ -35,21 +35,37 @@ type URLBatchResponseItem struct {
 	ShortURL      string `json:"short_url"`
 }
 
-func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, l zerolog.Logger) {
+func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, jwtSecret string, l zerolog.Logger) {
 	routes := &urlRoutes{u, l}
+	auth := middleware.NewAuth(jwtSecret)
 
 	r.Get("/{id}", routes.resolveURL)
-	r.With(middleware.DecompressMiddleware()).Post("/", routes.saveURLLegacy)
+	r.With(middleware.DecompressMiddleware()).
+		With(auth.ProvideJWTMiddleware).
+		Post("/", routes.saveURLLegacy)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Use(middleware.CompressMiddleware("application/json"))
 		r.Use(middleware.DecompressMiddleware())
 
 		r.Route("/shorten", func(r chi.Router) {
+			r.Use(auth.ProvideJWTMiddleware)
+
 			r.Post("/", routes.saveURL)
 			r.Post("/batch", routes.saveURLMultiple)
 		})
 	})
+}
+
+func (ur *urlRoutes) getUserUUID(r *http.Request) string {
+	v := r.Context().Value(middleware.UserUUIDContextKey)
+	userUUID, ok := v.(string)
+
+	if !ok {
+		return ""
+	}
+
+	return userUUID
 }
 
 func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +78,7 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(r.Context(), url)
+	urlObj, err := ur.u.SaveURL(r.Context(), url, ur.getUserUUID(r))
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			w.WriteHeader(http.StatusConflict)
@@ -90,7 +106,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL)
+	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL, ur.getUserUUID(r))
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			w.Header().Set("Content-Type", "application/json")
@@ -129,7 +145,7 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 		urls = append(urls, item.OriginalURL)
 	}
 
-	urlObjs, err := ur.u.SaveURLMultiple(r.Context(), urls)
+	urlObjs, err := ur.u.SaveURLMultiple(r.Context(), urls, ur.getUserUUID(r))
 	if err != nil {
 		http.Error(w, "saving url failed", http.StatusInternalServerError)
 

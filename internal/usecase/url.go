@@ -25,13 +25,14 @@ func NewURLUseCase(repo URLRepo, gen HashGenerator, baseRedirectURL string) *URL
 	}
 }
 
-func (uc *URLUseCase) SaveURL(ctx context.Context, url string) (*entity.URL, error) {
+func (uc *URLUseCase) SaveURL(ctx context.Context, url string, userUUID string) (*entity.URL, error) {
 	hash, err := uc.gen.Generate()
 	if err != nil {
 		return nil, err
 	}
 
-	urlObj := &entity.URL{Original: url, Short: hash}
+	urlObj := &entity.URL{Original: url, Short: hash, UserUUID: userUUID}
+	fmt.Println(urlObj)
 
 	storedURL, err := uc.repo.Store(ctx, urlObj)
 	if errors.Is(err, repo.ErrOriginalURLConflict) {
@@ -41,7 +42,7 @@ func (uc *URLUseCase) SaveURL(ctx context.Context, url string) (*entity.URL, err
 	return storedURL, err
 }
 
-func (uc *URLUseCase) SaveURLMultiple(ctx context.Context, urls []string) ([]*entity.URL, error) {
+func (uc *URLUseCase) SaveURLMultiple(ctx context.Context, urls []string, userUUID string) ([]*entity.URL, error) {
 	urlObjs := make([]*entity.URL, 0, len(urls))
 
 	if len(urls) == 0 {
@@ -54,7 +55,7 @@ func (uc *URLUseCase) SaveURLMultiple(ctx context.Context, urls []string) ([]*en
 			return urlObjs, err
 		}
 
-		urlObjs = append(urlObjs, &entity.URL{Original: url, Short: hash})
+		urlObjs = append(urlObjs, &entity.URL{Original: url, Short: hash, UserUUID: userUUID})
 	}
 
 	return urlObjs, uc.repo.StoreMultiple(ctx, urlObjs)
