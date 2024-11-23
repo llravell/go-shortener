@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
+	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/llravell/go-shortener/internal/controller/httpv1"
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/mocks"
@@ -152,13 +153,13 @@ func TestURLBaseRoutes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.prepareMocks()
 
-			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body, false)
+			res, body := testutils.SendTestRequest(t, ts, ts.Client(), tc.method, tc.path, tc.body, map[string]string{})
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
 
 			if tc.expectedBody != "" {
-				assert.Equal(t, tc.expectedBody, body)
+				assert.Equal(t, tc.expectedBody, string(body))
 			}
 		})
 	}
@@ -224,13 +225,13 @@ func TestURLBatchRoute(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.prepareMocks()
 
-			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body, false)
+			res, body := testutils.SendTestRequest(t, ts, ts.Client(), tc.method, tc.path, tc.body, map[string]string{})
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
 
 			if tc.expectedBody != "" {
-				assert.Equal(t, tc.expectedBody, body)
+				assert.Equal(t, tc.expectedBody, string(body))
 			}
 		})
 	}
@@ -244,7 +245,9 @@ func TestURLUserRoutes(t *testing.T) {
 	defer ts.Close()
 
 	t.Run("Return unauthorized status code for unauthorized user", func(t *testing.T) {
-		res, _ := sendTestRequest(t, ts, http.MethodGet, "/api/user/urls", http.NoBody, false)
+		res, _ := testutils.SendTestRequest(
+			t, ts, ts.Client(), http.MethodGet, "/api/user/urls", http.NoBody, map[string]string{},
+		)
 
 		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 	})
@@ -254,7 +257,9 @@ func TestURLUserRoutes(t *testing.T) {
 			GetByUserUUID(gomock.Any(), gomock.Any()).
 			Return([]*entity.URL{}, nil)
 
-		res, _ := sendTestRequest(t, ts, http.MethodGet, "/api/user/urls", http.NoBody, true)
+		res, _ := testutils.SendTestRequest(
+			t, ts, testutils.AuthorizedClient(t, ts), http.MethodGet, "/api/user/urls", http.NoBody, map[string]string{},
+		)
 
 		assert.Equal(t, http.StatusNoContent, res.StatusCode)
 	})
@@ -269,7 +274,9 @@ func TestURLUserRoutes(t *testing.T) {
 				},
 			}, nil)
 
-		res, body := sendTestRequest(t, ts, http.MethodGet, "/api/user/urls", http.NoBody, true)
+		res, body := testutils.SendTestRequest(
+			t, ts, testutils.AuthorizedClient(t, ts), http.MethodGet, "/api/user/urls", http.NoBody, map[string]string{},
+		)
 
 		expectedBody := toJSON(t, []httpv1.UserURLItem{
 			{
@@ -279,6 +286,6 @@ func TestURLUserRoutes(t *testing.T) {
 		})
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
-		assert.Equal(t, expectedBody, body)
+		assert.Equal(t, expectedBody, string(body))
 	})
 }

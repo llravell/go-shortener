@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -52,7 +53,9 @@ func TestLoggerMiddleware(t *testing.T) {
 	t.Run("Test request log", func(t *testing.T) {
 		out.Reset()
 
-		res, _ := testRequest(t, ts, http.MethodPost, "/", strings.NewReader(payload), map[string]string{})
+		res, _ := testutils.SendTestRequest(
+			t, ts, ts.Client(), http.MethodPost, "/", strings.NewReader(payload), map[string]string{},
+		)
 		defer res.Body.Close()
 
 		log := readLog(t, out)

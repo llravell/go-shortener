@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
+	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/llravell/go-shortener/internal/controller/httpv1"
 	"github.com/llravell/go-shortener/internal/mocks"
 	"github.com/llravell/go-shortener/internal/usecase"
@@ -57,13 +58,13 @@ func TestHealthRoutes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.prepareMocks()
 
-			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body, false)
+			res, body := testutils.SendTestRequest(t, ts, ts.Client(), tc.method, tc.path, tc.body, map[string]string{})
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
 
 			if tc.expectedBody != "" {
-				assert.Equal(t, tc.expectedBody, body)
+				assert.Equal(t, tc.expectedBody, string(body))
 			}
 		})
 	}
