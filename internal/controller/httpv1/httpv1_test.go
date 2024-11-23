@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,13 +27,20 @@ func sendTestRequest(
 	method string,
 	path string,
 	body io.Reader,
+	withAuth bool,
 ) (*http.Response, string) {
 	t.Helper()
 
 	req, err := http.NewRequestWithContext(context.Background(), method, ts.URL+path, body)
 	require.NoError(t, err)
 
-	res, err := ts.Client().Do(req)
+	client := ts.Client()
+
+	if withAuth {
+		client = testutils.MakeAuthorizedClient(t, ts)
+	}
+
+	res, err := client.Do(req)
 	require.NoError(t, err)
 
 	b, err := io.ReadAll(res.Body)

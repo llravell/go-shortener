@@ -9,13 +9,11 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
-	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-const jwtSecretKey = "secret"
 
 func findAuthTokenCookie(t *testing.T, cookies []*http.Cookie) *http.Cookie {
 	t.Helper()
@@ -33,22 +31,10 @@ func findAuthTokenCookie(t *testing.T, cookies []*http.Cookie) *http.Cookie {
 	return tokenCookie
 }
 
-func buildAuthTokenCookie(t *testing.T) *http.Cookie {
-	t.Helper()
-
-	jwtToken, err := entity.BuildJWTString("test-uuid", []byte(jwtSecretKey))
-	require.NoError(t, err)
-
-	return &http.Cookie{
-		Name:  middleware.TokenCookieName,
-		Value: jwtToken,
-	}
-}
-
 //nolint:funlen
 func TestProvideJWTMiddleware(t *testing.T) {
 	router := chi.NewRouter()
-	auth := middleware.NewAuth(jwtSecretKey)
+	auth := middleware.NewAuth(testutils.JWTSecretKey)
 
 	router.Use(auth.ProvideJWTMiddleware)
 	router.Post("/", echoHandler(t))
@@ -128,15 +114,12 @@ func TestProvideJWTMiddleware(t *testing.T) {
 
 func TestCheckJWTMiddleware(t *testing.T) {
 	router := chi.NewRouter()
-	auth := middleware.NewAuth(jwtSecretKey)
+	auth := middleware.NewAuth(testutils.JWTSecretKey)
 
 	router.Use(auth.CheckJWTMiddleware)
 	router.Post("/", echoHandler(t))
 
 	ts := httptest.NewServer(router)
-
-	tsURL, err := url.Parse(ts.URL)
-	require.NoError(t, err)
 
 	t.Run("Middleware return unauthorized status code if token does not exist", func(t *testing.T) {
 		res, _ := testRequest(t, ts, http.MethodPost, "/", http.NoBody, map[string]string{})
@@ -146,12 +129,7 @@ func TestCheckJWTMiddleware(t *testing.T) {
 	})
 
 	t.Run("Middleware call original handler if token exists", func(t *testing.T) {
-		client := ts.Client()
-		jar, err := cookiejar.New(nil)
-		require.NoError(t, err)
-
-		jar.SetCookies(tsURL, []*http.Cookie{buildAuthTokenCookie(t)})
-		client.Jar = jar
+		client := testutils.MakeAuthorizedClient(t, ts)
 
 		req, err := http.NewRequestWithContext(context.TODO(), http.MethodPost, ts.URL+"/", http.NoBody)
 		require.NoError(t, err)

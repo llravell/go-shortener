@@ -35,6 +35,11 @@ type URLBatchResponseItem struct {
 	ShortURL      string `json:"short_url"`
 }
 
+type UserURLItem struct {
+	ShortUrl    string `json:"short_url"`
+	OriginalUrl string `json:"original_url"`
+}
+
 func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, jwtSecret string, l zerolog.Logger) {
 	routes := &urlRoutes{u, l}
 	auth := middleware.NewAuth(jwtSecret)
@@ -54,10 +59,16 @@ func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, jwtSecret string, l zerol
 			r.Post("/", routes.saveURL)
 			r.Post("/batch", routes.saveURLMultiple)
 		})
+
+		r.Route("/user", func(r chi.Router) {
+			r.Use(auth.CheckJWTMiddleware)
+
+			r.Get("/urls", routes.getUserURLS)
+		})
 	})
 }
 
-func (ur *urlRoutes) getUserUUID(r *http.Request) string {
+func (ur *urlRoutes) getUserUUIDFromRequest(r *http.Request) string {
 	v := r.Context().Value(middleware.UserUUIDContextKey)
 	userUUID, ok := v.(string)
 
@@ -78,7 +89,7 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(r.Context(), url, ur.getUserUUID(r))
+	urlObj, err := ur.u.SaveURL(r.Context(), url, ur.getUserUUIDFromRequest(r))
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			w.WriteHeader(http.StatusConflict)
@@ -106,7 +117,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL, ur.getUserUUID(r))
+	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL, ur.getUserUUIDFromRequest(r))
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			w.Header().Set("Content-Type", "application/json")
@@ -145,7 +156,7 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 		urls = append(urls, item.OriginalURL)
 	}
 
-	urlObjs, err := ur.u.SaveURLMultiple(r.Context(), urls, ur.getUserUUID(r))
+	urlObjs, err := ur.u.SaveURLMultiple(r.Context(), urls, ur.getUserUUIDFromRequest(r))
 	if err != nil {
 		http.Error(w, "saving url failed", http.StatusInternalServerError)
 
@@ -185,4 +196,39 @@ func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	ur.log.Info().Str("url", url.Original).Msg("redirect")
 
 	http.Redirect(w, r, url.Original, http.StatusTemporaryRedirect)
+}
+
+func (ur *urlRoutes) getUserURLS(w http.ResponseWriter, r *http.Request) {
+	userUUID := ur.getUserUUIDFromRequest(r)
+
+	userURLS, err := ur.u.GetUserURLS(r.Context(), userUUID)
+	if err != nil {
+		http.Error(w, "searching urls failed", http.StatusInternalServerError)
+
+		return
+	}
+
+	if len(userURLS) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+
+		return
+	}
+
+	responseItems := make([]UserURLItem, 0, len(userURLS))
+
+	for _, urlObj := range userURLS {
+		item := UserURLItem{
+			OriginalUrl: urlObj.Original,
+			ShortUrl:    ur.u.BuildRedirectURL(urlObj),
+		}
+
+		responseItems = append(responseItems, item)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	err = json.NewEncoder(w).Encode(responseItems)
+	if err != nil {
+		ur.log.Err(err).Msg("response write has been failed")
+	}
 }

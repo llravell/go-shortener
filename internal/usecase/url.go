@@ -65,6 +65,10 @@ func (uc *URLUseCase) ResolveURL(ctx context.Context, hash string) (*entity.URL,
 	return uc.repo.Get(ctx, hash)
 }
 
+func (uc *URLUseCase) GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error) {
+	return uc.repo.GetByUserUUID(ctx, userUUID)
+}
+
 func (uc *URLUseCase) BuildRedirectURL(url *entity.URL) string {
 	return fmt.Sprintf("%s/%s", uc.baseRedirectURL, url.Short)
 }

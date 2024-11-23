@@ -152,7 +152,7 @@ func TestURLBaseRoutes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.prepareMocks()
 
-			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body)
+			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body, false)
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
@@ -224,7 +224,7 @@ func TestURLBatchRoute(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.prepareMocks()
 
-			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body)
+			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body, false)
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
@@ -234,4 +234,51 @@ func TestURLBatchRoute(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestURLUserRoutes(t *testing.T) {
+	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
+	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+
+	ts := prepareTestServer(gen, repo)
+	defer ts.Close()
+
+	t.Run("Return unauthorized status code for unauthorized user", func(t *testing.T) {
+		res, _ := sendTestRequest(t, ts, http.MethodGet, "/api/user/urls", http.NoBody, false)
+
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	})
+
+	t.Run("Return no content status code user without urls", func(t *testing.T) {
+		repo.EXPECT().
+			GetByUserUUID(gomock.Any(), gomock.Any()).
+			Return([]*entity.URL{}, nil)
+
+		res, _ := sendTestRequest(t, ts, http.MethodGet, "/api/user/urls", http.NoBody, true)
+
+		assert.Equal(t, http.StatusNoContent, res.StatusCode)
+	})
+
+	t.Run("Return user's urls", func(t *testing.T) {
+		repo.EXPECT().
+			GetByUserUUID(gomock.Any(), gomock.Any()).
+			Return([]*entity.URL{
+				{
+					Short:    "a",
+					Original: "https://a.ru",
+				},
+			}, nil)
+
+		res, body := sendTestRequest(t, ts, http.MethodGet, "/api/user/urls", http.NoBody, true)
+
+		expectedBody := toJSON(t, []httpv1.UserURLItem{
+			{
+				ShortUrl:    "http://localhost:8080/a",
+				OriginalUrl: "https://a.ru",
+			},
+		})
+
+		assert.Equal(t, http.StatusOK, res.StatusCode)
+		assert.Equal(t, expectedBody, body)
+	})
 }
