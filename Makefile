@@ -7,6 +7,10 @@ LOCAL_BIN ?= $(CURDIR)/bin
 run: ### run app in dev mode
 	go run cmd/shortener/main.go
 
+.PHONY: debugg
+debugg: ### run app in debugg mode
+	go build -gcflags=all="-N -l" cmd/shortener/main.go && ./main
+
 .PHONY: lint
 lint: ### run linter
 	golangci-lint run ./...
