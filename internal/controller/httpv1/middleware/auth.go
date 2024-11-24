@@ -34,15 +34,18 @@ func (auth *Auth) parseUserUUIDFromRequest(r *http.Request) string {
 	return claims.UserUUID
 }
 
+func (auth *Auth) provideUserUUIDToRequestContext(r *http.Request, userUUID string) *http.Request {
+	ctx := context.WithValue(r.Context(), UserUUIDContextKey, userUUID)
+
+	return r.WithContext(ctx)
+}
+
 func (auth *Auth) ProvideJWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userUUID := auth.parseUserUUIDFromRequest(r)
-		ctx := context.WithValue(r.Context(), UserUUIDContextKey, userUUID)
-
-		r = r.WithContext(ctx)
 
 		if userUUID != "" {
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, auth.provideUserUUIDToRequestContext(r, userUUID))
 
 			return
 		}
@@ -63,7 +66,7 @@ func (auth *Auth) ProvideJWTMiddleware(next http.Handler) http.Handler {
 			Value:    jwtToken,
 		})
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, auth.provideUserUUIDToRequestContext(r, userUUID))
 	})
 }
 
