@@ -18,6 +18,13 @@ func NewURLDatabaseRepo(conn *sql.DB) *URLDatabaseRepo {
 	return &URLDatabaseRepo{conn: conn}
 }
 
+func (u *URLDatabaseRepo) getNullableUserUUID(url *entity.URL) sql.NullString {
+	return sql.NullString{
+		String: url.UserUUID,
+		Valid:  url.UserUUID != "",
+	}
+}
+
 func (u *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
 	storedURL, err := u.getByOriginalURL(ctx, url.Original)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -33,7 +40,7 @@ func (u *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.U
 		VALUES
 			($1, $2, $3)
 		RETURNING uuid, url, short;
-	`, url.Original, url.Short, url.UserUUID)
+	`, url.Original, url.Short, u.getNullableUserUUID(url))
 
 	var returnedURL entity.URL
 
@@ -60,7 +67,7 @@ func (u *URLDatabaseRepo) StoreMultiple(ctx context.Context, urls []*entity.URL)
 			INSERT INTO urls (url, short, user_uuid)
 			VALUES
 				($1, $2, $3);
-		`, url.Original, url.Short, url.UserUUID)
+		`, url.Original, url.Short, u.getNullableUserUUID(url))
 		if err != nil {
 			return err
 		}
