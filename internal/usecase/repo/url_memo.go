@@ -74,7 +74,7 @@ func (u *URLMemoRepo) Init(urls []*entity.URL) {
 	}
 }
 
-func (u *URLMemoRepo) DeleteMultiple(ctx context.Context, userUUID string, urlHashes []string) error {
+func (u *URLMemoRepo) DeleteMultiple(_ context.Context, userUUID string, urlHashes []string) error {
 	urlHashesToDelete := make(map[string]struct{}, len(urlHashes))
 
 	for _, hash := range urlHashes {

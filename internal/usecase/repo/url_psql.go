@@ -164,6 +164,7 @@ func (u *URLDatabaseRepo) DeleteMultiple(ctx context.Context, userUUID string, u
 		args = append(args, hash)
 	}
 
+	//nolint:gosec
 	query := `
 		UPDATE urls
 		SET is_deleted=TRUE
