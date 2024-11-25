@@ -34,11 +34,17 @@ func toJSON(t *testing.T, m any) string {
 	return string(data)
 }
 
-func prepareTestServer(gen usecase.HashGenerator, repo usecase.URLRepo) *httptest.Server {
-	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
-	router := chi.NewRouter()
+func prepareTestServer(
+	gen usecase.HashGenerator,
+	repo usecase.URLRepo,
+	deleteRepo usecase.URLDeleteRepo,
+) *httptest.Server {
 	logger := zerolog.Nop()
-	httpv1.NewURLRoutes(router, urlUseCase, "secret", logger)
+	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
+	urlDeleteUseCase := usecase.NewURLDeleteUseCase(deleteRepo, logger)
+
+	router := chi.NewRouter()
+	httpv1.NewURLRoutes(router, urlUseCase, urlDeleteUseCase, "secret", logger)
 
 	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
@@ -52,10 +58,11 @@ func prepareTestServer(gen usecase.HashGenerator, repo usecase.URLRepo) *httptes
 func TestURLBaseRoutes(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+	deleteRepo := mocks.NewMockURLDeleteRepo(gomock.NewController(t))
 
 	gen.EXPECT().Generate().AnyTimes()
 
-	ts := prepareTestServer(gen, repo)
+	ts := prepareTestServer(gen, repo, deleteRepo)
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -169,8 +176,9 @@ func TestURLBaseRoutes(t *testing.T) {
 func TestURLBatchRoute(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+	deleteRepo := mocks.NewMockURLDeleteRepo(gomock.NewController(t))
 
-	ts := prepareTestServer(gen, repo)
+	ts := prepareTestServer(gen, repo, deleteRepo)
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -240,8 +248,9 @@ func TestURLBatchRoute(t *testing.T) {
 func TestURLUserRoutes(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+	deleteRepo := mocks.NewMockURLDeleteRepo(gomock.NewController(t))
 
-	ts := prepareTestServer(gen, repo)
+	ts := prepareTestServer(gen, repo, deleteRepo)
 	defer ts.Close()
 
 	t.Run("Return unauthorized status code for unauthorized user", func(t *testing.T) {

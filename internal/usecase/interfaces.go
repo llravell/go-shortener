@@ -13,6 +13,10 @@ type URLRepo interface {
 	GetByUserUUID(ctx context.Context, userUUID string) ([]*entity.URL, error)
 }
 
+type URLDeleteRepo interface {
+	DeleteMultiple(ctx context.Context, userUUID string, urlHashes []string) error
+}
+
 type HealthRepo interface {
 	PingContext(ctx context.Context) error
 }

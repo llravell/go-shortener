@@ -17,6 +17,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type urlUnionRepo interface {
+	usecase.URLRepo
+	usecase.URLDeleteRepo
+}
+
 func startServer(cfg *config.Config, handler http.Handler) error {
 	server := http.Server{
 		Addr:         cfg.Addr,
@@ -56,13 +61,14 @@ func prepareMemoryURLRepo(
 	}
 }
 
+//nolint:funlen
 func Run(cfg *config.Config, db *sql.DB) {
 	log := logger.Get()
 	defer logger.Close()
 
 	var err error
 
-	var urlRepo usecase.URLRepo
+	var urlRepo urlUnionRepo
 
 	if cfg.DatabaseDsn != "" {
 		urlRepo = repo.NewURLDatabaseRepo(db)
@@ -86,9 +92,14 @@ func Run(cfg *config.Config, db *sql.DB) {
 		entity.NewRandomStringGenerator(),
 		cfg.BaseAddr,
 	)
+	urlDeleteUseCase := usecase.NewURLDeleteUseCase(
+		urlRepo,
+		log,
+	)
 
 	router := httpv1.NewRouter(
 		urlUseCase,
+		urlDeleteUseCase,
 		healthUseCase,
 		cfg.JWTSecret,
 		log,
@@ -106,6 +117,9 @@ func Run(cfg *config.Config, db *sql.DB) {
 	log.Info().
 		Str("addr", cfg.Addr).
 		Msgf("starting shortener server on '%s'", cfg.Addr)
+
+	go urlDeleteUseCase.ProcessQueue()
+	defer urlDeleteUseCase.Cancel()
 
 	select {
 	case s := <-interrupt:

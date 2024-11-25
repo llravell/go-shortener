@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/llravell/go-shortener/internal/entity"
 )
@@ -79,13 +81,13 @@ func (u *URLDatabaseRepo) StoreMultiple(ctx context.Context, urls []*entity.URL)
 func (u *URLDatabaseRepo) Get(ctx context.Context, hash string) (*entity.URL, error) {
 	row := u.conn.QueryRowContext(
 		ctx,
-		"SELECT uuid, url, short FROM urls WHERE short=$1",
+		"SELECT uuid, url, short, is_deleted FROM urls WHERE short=$1",
 		hash,
 	)
 
 	var url entity.URL
 
-	err := row.Scan(&url.UUID, &url.Original, &url.Short)
+	err := row.Scan(&url.UUID, &url.Original, &url.Short, &url.Deleted)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +100,7 @@ func (u *URLDatabaseRepo) GetByUserUUID(ctx context.Context, userUUID string) ([
 
 	rows, err := u.conn.QueryContext(
 		ctx,
-		"SELECT uuid, url, short FROM urls WHERE user_uuid=$1",
+		"SELECT uuid, url, short FROM urls WHERE user_uuid=$1 AND NOT is_deleted",
 		userUUID,
 	)
 	if err != nil {
@@ -133,7 +135,7 @@ func (u *URLDatabaseRepo) GetByUserUUID(ctx context.Context, userUUID string) ([
 func (u *URLDatabaseRepo) getByOriginalURL(ctx context.Context, originalURL string) (*entity.URL, error) {
 	row := u.conn.QueryRowContext(
 		ctx,
-		"SELECT uuid, url, short FROM urls WHERE url=$1",
+		"SELECT uuid, url, short FROM urls WHERE url=$1 AND NOT is_deleted",
 		originalURL,
 	)
 
@@ -145,4 +147,30 @@ func (u *URLDatabaseRepo) getByOriginalURL(ctx context.Context, originalURL stri
 	}
 
 	return &url, nil
+}
+
+func (u *URLDatabaseRepo) DeleteMultiple(ctx context.Context, userUUID string, urlHashes []string) error {
+	queryTemplateBase := 2
+	queryTemplateParams := make([]string, len(urlHashes))
+
+	for i := range urlHashes {
+		queryTemplateParams[i] = fmt.Sprintf("$%d", queryTemplateBase+i)
+	}
+
+	args := make([]any, 0, len(urlHashes)+1)
+	args = append(args, userUUID)
+
+	for _, hash := range urlHashes {
+		args = append(args, hash)
+	}
+
+	query := `
+		UPDATE urls
+		SET is_deleted=TRUE
+		WHERE user_uuid=$1 AND short IN
+	` + " (" + strings.Join(queryTemplateParams, ",") + ");"
+
+	_, err := u.conn.ExecContext(ctx, query, args...)
+
+	return err
 }

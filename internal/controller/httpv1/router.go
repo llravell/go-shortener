@@ -9,6 +9,7 @@ import (
 
 func NewRouter(
 	urlUseCase *usecase.URLUseCase,
+	urlDeleteUseCase *usecase.URLDeleteUseCase,
 	healthUseCase *usecase.HealthUseCase,
 	jwtSecret string,
 	log zerolog.Logger,
@@ -18,7 +19,7 @@ func NewRouter(
 	router.Use(middleware.LoggerMiddleware(log))
 
 	NewHealthRoutes(router, healthUseCase, log)
-	NewURLRoutes(router, urlUseCase, jwtSecret, log)
+	NewURLRoutes(router, urlUseCase, urlDeleteUseCase, jwtSecret, log)
 
 	return router
 }

@@ -80,8 +80,7 @@ func (auth *Auth) CheckJWTMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), UserUUIDContextKey, userUUID)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, auth.provideUserUUIDToRequestContext(r, userUUID))
 	})
 }
 

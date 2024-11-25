@@ -13,7 +13,8 @@ import (
 )
 
 type urlRoutes struct {
-	u   *usecase.URLUseCase
+	uuc *usecase.URLUseCase
+	udc *usecase.URLDeleteUseCase
 	log zerolog.Logger
 }
 
@@ -40,8 +41,14 @@ type UserURLItem struct {
 	OriginalURL string `json:"original_url"`
 }
 
-func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, jwtSecret string, l zerolog.Logger) {
-	routes := &urlRoutes{u, l}
+func NewURLRoutes(
+	r chi.Router,
+	uuc *usecase.URLUseCase,
+	udc *usecase.URLDeleteUseCase,
+	jwtSecret string,
+	l zerolog.Logger,
+) {
+	routes := &urlRoutes{uuc, udc, l}
 	auth := middleware.NewAuth(jwtSecret)
 
 	r.Get("/{id}", routes.resolveURL)
@@ -63,7 +70,10 @@ func NewURLRoutes(r chi.Router, u *usecase.URLUseCase, jwtSecret string, l zerol
 		r.Route("/user", func(r chi.Router) {
 			r.Use(auth.CheckJWTMiddleware)
 
-			r.Get("/urls", routes.getUserURLS)
+			r.Route("/urls", func(r chi.Router) {
+				r.Get("/", routes.getUserURLS)
+				r.Delete("/", routes.deleteUserURLS)
+			})
 		})
 	})
 }
@@ -89,7 +99,7 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(r.Context(), url, ur.getUserUUIDFromRequest(r))
+	urlObj, err := ur.uuc.SaveURL(r.Context(), url, ur.getUserUUIDFromRequest(r))
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			w.WriteHeader(http.StatusConflict)
@@ -102,7 +112,7 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 
-	_, err = w.Write([]byte(ur.u.BuildRedirectURL(urlObj)))
+	_, err = w.Write([]byte(ur.uuc.BuildRedirectURL(urlObj)))
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
 	}
@@ -117,7 +127,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.u.SaveURL(r.Context(), urlReq.URL, ur.getUserUUIDFromRequest(r))
+	urlObj, err := ur.uuc.SaveURL(r.Context(), urlReq.URL, ur.getUserUUIDFromRequest(r))
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			w.Header().Set("Content-Type", "application/json")
@@ -130,7 +140,7 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := saveURLResponse{
-		Result: ur.u.BuildRedirectURL(urlObj),
+		Result: ur.uuc.BuildRedirectURL(urlObj),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -156,7 +166,7 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 		urls = append(urls, item.OriginalURL)
 	}
 
-	urlObjs, err := ur.u.SaveURLMultiple(r.Context(), urls, ur.getUserUUIDFromRequest(r))
+	urlObjs, err := ur.uuc.SaveURLMultiple(r.Context(), urls, ur.getUserUUIDFromRequest(r))
 	if err != nil {
 		http.Error(w, "saving url failed", http.StatusInternalServerError)
 
@@ -168,7 +178,7 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 	for i, urlObj := range urlObjs {
 		item := URLBatchResponseItem{
 			CorrelationID: batchItems[i].CorrelationID,
-			ShortURL:      ur.u.BuildRedirectURL(urlObj),
+			ShortURL:      ur.uuc.BuildRedirectURL(urlObj),
 		}
 
 		responseItems = append(responseItems, item)
@@ -186,9 +196,15 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	hash := r.PathValue(`id`)
 
-	url, err := ur.u.ResolveURL(r.Context(), hash)
+	url, err := ur.uuc.ResolveURL(r.Context(), hash)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+
+		return
+	}
+
+	if url.Deleted {
+		w.WriteHeader(http.StatusGone)
 
 		return
 	}
@@ -201,7 +217,7 @@ func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 func (ur *urlRoutes) getUserURLS(w http.ResponseWriter, r *http.Request) {
 	userUUID := ur.getUserUUIDFromRequest(r)
 
-	userURLS, err := ur.u.GetUserURLS(r.Context(), userUUID)
+	userURLS, err := ur.uuc.GetUserURLS(r.Context(), userUUID)
 	if err != nil {
 		http.Error(w, "searching urls failed", http.StatusInternalServerError)
 
@@ -219,7 +235,7 @@ func (ur *urlRoutes) getUserURLS(w http.ResponseWriter, r *http.Request) {
 	for _, urlObj := range userURLS {
 		item := UserURLItem{
 			OriginalURL: urlObj.Original,
-			ShortURL:    ur.u.BuildRedirectURL(urlObj),
+			ShortURL:    ur.uuc.BuildRedirectURL(urlObj),
 		}
 
 		responseItems = append(responseItems, item)
@@ -231,4 +247,21 @@ func (ur *urlRoutes) getUserURLS(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
 	}
+}
+
+func (ur *urlRoutes) deleteUserURLS(w http.ResponseWriter, r *http.Request) {
+	var urlHashes []string
+
+	if err := json.NewDecoder(r.Body).Decode(&urlHashes); err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+
+		return
+	}
+
+	ur.udc.QueueDelete(&usecase.URLDeleteItem{
+		UserUUID: ur.getUserUUIDFromRequest(r),
+		Hashes:   urlHashes,
+	})
+
+	w.WriteHeader(http.StatusAccepted)
 }
