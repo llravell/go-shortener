@@ -35,7 +35,7 @@ func NewURLDeleteUseCase(repo URLDeleteRepo, log zerolog.Logger) *URLDeleteUseCa
 	}
 }
 
-func (ud *URLDeleteUseCase) Cancel() error {
+func (ud *URLDeleteUseCase) Close() error {
 	hasBeenCanceled := ud.cancelled.Swap(true)
 
 	if !hasBeenCanceled {
@@ -80,4 +80,15 @@ func (ud *URLDeleteUseCase) ProcessQueue() {
 			go ud.worker()
 		}
 	})
+}
+
+func (ud *URLDeleteUseCase) Reset() {
+	if !ud.cancelled.Load() {
+		return
+	}
+
+	ud.urlDeleteItemsCh = make(chan *URLDeleteItem, urlDeleteItemsChanSize)
+	ud.processOnce = sync.Once{}
+	ud.wg = sync.WaitGroup{}
+	ud.cancelled.Store(false)
 }

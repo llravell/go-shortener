@@ -38,7 +38,7 @@ func prepareTestServer(
 	gen usecase.HashGenerator,
 	repo usecase.URLRepo,
 	deleteRepo usecase.URLDeleteRepo,
-) *httptest.Server {
+) (*httptest.Server, *usecase.URLDeleteUseCase) {
 	logger := zerolog.Nop()
 	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
 	urlDeleteUseCase := usecase.NewURLDeleteUseCase(deleteRepo, logger)
@@ -51,7 +51,7 @@ func prepareTestServer(
 		return http.ErrUseLastResponse
 	}
 
-	return ts
+	return ts, urlDeleteUseCase
 }
 
 //nolint:funlen
@@ -62,7 +62,7 @@ func TestURLBaseRoutes(t *testing.T) {
 
 	gen.EXPECT().Generate().AnyTimes()
 
-	ts := prepareTestServer(gen, repo, deleteRepo)
+	ts, _ := prepareTestServer(gen, repo, deleteRepo)
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -154,6 +154,17 @@ func TestURLBaseRoutes(t *testing.T) {
 			},
 			expectedCode: http.StatusBadRequest,
 		},
+		{
+			name:   "Redirect on deleted url",
+			method: http.MethodGet,
+			path:   "/deleted_url",
+			prepareMocks: func() {
+				repo.EXPECT().
+					Get(gomock.Any(), "deleted_url").
+					Return(&entity.URL{Deleted: true}, nil)
+			},
+			expectedCode: http.StatusGone,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -178,7 +189,7 @@ func TestURLBatchRoute(t *testing.T) {
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
 	deleteRepo := mocks.NewMockURLDeleteRepo(gomock.NewController(t))
 
-	ts := prepareTestServer(gen, repo, deleteRepo)
+	ts, _ := prepareTestServer(gen, repo, deleteRepo)
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -245,15 +256,19 @@ func TestURLBatchRoute(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestURLUserRoutes(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
 	deleteRepo := mocks.NewMockURLDeleteRepo(gomock.NewController(t))
 
-	ts := prepareTestServer(gen, repo, deleteRepo)
+	ts, urlDeleteUseCase := prepareTestServer(gen, repo, deleteRepo)
 	defer ts.Close()
 
-	t.Run("Return unauthorized status code for unauthorized user", func(t *testing.T) {
+	urlDeleteUseCase.ProcessQueue()
+	defer urlDeleteUseCase.Close()
+
+	t.Run("Return unauthorized status code for unauthorized get try", func(t *testing.T) {
 		res, _ := testutils.SendTestRequest(
 			t, ts, ts.Client(), http.MethodGet, "/api/user/urls", http.NoBody, map[string]string{},
 		)
@@ -299,5 +314,34 @@ func TestURLUserRoutes(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, res.StatusCode)
 		assert.Equal(t, expectedBody, string(body))
+	})
+
+	t.Run("Return unauthorized status code for unauthorized delete try", func(t *testing.T) {
+		res, _ := testutils.SendTestRequest(
+			t, ts, ts.Client(), http.MethodDelete, "/api/user/urls", http.NoBody, map[string]string{},
+		)
+		defer res.Body.Close()
+
+		assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
+	})
+
+	t.Run("Successful deleting several urls", func(t *testing.T) {
+		hashes := []string{"a", "b"}
+
+		deleteRepo.EXPECT().
+			DeleteMultiple(gomock.Any(), gomock.Any(), hashes).
+			Return(nil)
+
+		body := strings.NewReader(toJSON(t, hashes))
+		res, _ := testutils.SendTestRequest(
+			t, ts, testutils.AuthorizedClient(t, ts), http.MethodDelete, "/api/user/urls", body, map[string]string{},
+		)
+
+		defer res.Body.Close()
+
+		urlDeleteUseCase.Close()
+		urlDeleteUseCase.Reset()
+
+		assert.Equal(t, http.StatusAccepted, res.StatusCode)
 	})
 }

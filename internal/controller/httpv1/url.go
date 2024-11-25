@@ -68,9 +68,9 @@ func NewURLRoutes(
 		})
 
 		r.Route("/user", func(r chi.Router) {
-			r.Use(auth.CheckJWTMiddleware)
-
 			r.Route("/urls", func(r chi.Router) {
+				r.Use(auth.CheckJWTMiddleware)
+
 				r.Get("/", routes.getUserURLS)
 				r.Delete("/", routes.deleteUserURLS)
 			})

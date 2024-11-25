@@ -31,7 +31,7 @@ func buildAuthTokenCookie(t *testing.T) *http.Cookie {
 func AuthorizedClient(t *testing.T, ts *httptest.Server) *http.Client {
 	t.Helper()
 
-	client := ts.Client()
+	client := *ts.Client()
 	jar, err := cookiejar.New(nil)
 	require.NoError(t, err)
 
@@ -41,7 +41,7 @@ func AuthorizedClient(t *testing.T, ts *httptest.Server) *http.Client {
 	jar.SetCookies(tsURL, []*http.Cookie{buildAuthTokenCookie(t)})
 	client.Jar = jar
 
-	return client
+	return &client
 }
 
 func SendTestRequest(

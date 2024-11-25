@@ -119,7 +119,7 @@ func Run(cfg *config.Config, db *sql.DB) {
 		Msgf("starting shortener server on '%s'", cfg.Addr)
 
 	go urlDeleteUseCase.ProcessQueue()
-	defer urlDeleteUseCase.Cancel()
+	defer urlDeleteUseCase.Close()
 
 	select {
 	case s := <-interrupt:
