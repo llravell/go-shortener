@@ -7,3 +7,8 @@ type URL struct {
 	UserUUID string `json:"user_uuid"`
 	Deleted  bool   `json:"is_deleted"`
 }
+
+type URLDeleteItem struct {
+	UserUUID string
+	Hashes   []string
+}

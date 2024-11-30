@@ -1,6 +1,7 @@
 package rest_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
+	"github.com/llravell/go-shortener/pkg/workerpool"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,10 +40,12 @@ func toJSON(t *testing.T, m any) string {
 func prepareTestServer(
 	gen usecase.HashGenerator,
 	repo usecase.URLRepo,
-) (*httptest.Server, *usecase.URLDeleteUseCase) {
+	wp *workerpool.WorkerPool[*usecase.URLDeleteWork],
+) *httptest.Server {
 	logger := zerolog.Nop()
+
 	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
-	urlDeleteUseCase := usecase.NewURLDeleteUseCase(repo, logger)
+	urlDeleteUseCase := usecase.NewURLDeleteUseCase(repo, wp, logger)
 
 	router := chi.NewRouter()
 	auth := middleware.NewAuth("secret")
@@ -52,7 +56,7 @@ func prepareTestServer(
 		return http.ErrUseLastResponse
 	}
 
-	return ts, urlDeleteUseCase
+	return ts
 }
 
 //nolint:funlen
@@ -62,7 +66,7 @@ func TestURLBaseRoutes(t *testing.T) {
 
 	gen.EXPECT().Generate().AnyTimes()
 
-	ts, _ := prepareTestServer(gen, repo)
+	ts := prepareTestServer(gen, repo, workerpool.New[*usecase.URLDeleteWork](0))
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -188,7 +192,7 @@ func TestURLBatchRoute(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
 
-	ts, _ := prepareTestServer(gen, repo)
+	ts := prepareTestServer(gen, repo, workerpool.New[*usecase.URLDeleteWork](0))
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -259,12 +263,10 @@ func TestURLBatchRoute(t *testing.T) {
 func TestURLUserRoutes(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+	wp := workerpool.New[*usecase.URLDeleteWork](1)
 
-	ts, urlDeleteUseCase := prepareTestServer(gen, repo)
+	ts := prepareTestServer(gen, repo, wp)
 	defer ts.Close()
-
-	urlDeleteUseCase.ProcessQueue()
-	defer urlDeleteUseCase.Close()
 
 	t.Run("Return unauthorized status code for unauthorized get try", func(t *testing.T) {
 		res, _ := testutils.SendTestRequest(
@@ -330,15 +332,19 @@ func TestURLUserRoutes(t *testing.T) {
 			DeleteMultiple(gomock.Any(), gomock.Any(), hashes).
 			Return(nil)
 
+		wp.ProcessQueue(context.Background())
+
+		defer func() {
+			wp.Close()
+			wp.Reset()
+		}()
+
 		body := strings.NewReader(toJSON(t, hashes))
 		res, _ := testutils.SendTestRequest(
 			t, ts, testutils.AuthorizedClient(t, ts), http.MethodDelete, "/api/user/urls", body, map[string]string{},
 		)
 
 		defer res.Body.Close()
-
-		urlDeleteUseCase.Close()
-		urlDeleteUseCase.Reset()
 
 		assert.Equal(t, http.StatusAccepted, res.StatusCode)
 	})

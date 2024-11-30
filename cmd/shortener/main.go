@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"embed"
 	"log"
@@ -13,9 +14,12 @@ import (
 	"github.com/llravell/go-shortener/internal/repo"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/llravell/go-shortener/logger"
+	"github.com/llravell/go-shortener/pkg/workerpool"
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog"
 )
+
+const urlDeleteWorkersAmount = 4
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
@@ -60,13 +64,14 @@ func prepareMemoryURLRepo(
 	}
 }
 
+//nolint:funlen
 func main() {
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("config error: %s", err)
 	}
 
-	var db *sql.DB = nil
+	var db *sql.DB
 
 	if cfg.DatabaseDsn != "" {
 		db, err = sql.Open("pgx", cfg.DatabaseDsn)
@@ -83,7 +88,7 @@ func main() {
 
 	var urlRepo usecase.URLRepo
 
-	if db != nil {
+	if cfg.DatabaseDsn != "" {
 		urlRepo = repo.NewURLDatabaseRepo(db)
 	} else {
 		memoRepo := repo.NewURLMemoRepo()
@@ -98,6 +103,8 @@ func main() {
 		}()
 	}
 
+	urlDeleteWorkerPool := workerpool.New[*usecase.URLDeleteWork](urlDeleteWorkersAmount)
+
 	urlUseCase := usecase.NewURLUseCase(
 		urlRepo,
 		entity.NewRandomStringGenerator(),
@@ -105,9 +112,19 @@ func main() {
 	)
 	urlDeleteUseCase := usecase.NewURLDeleteUseCase(
 		urlRepo,
+		urlDeleteWorkerPool,
 		log,
 	)
 	healthUseCase := usecase.NewHealthUseCase(db)
+
+	urlDeleteWorkerPool.ProcessQueue(context.Background())
+
+	defer func() {
+		urlDeleteWorkerPool.Close()
+
+		log.Info().Msg("delete worker pool finish waiting...")
+		urlDeleteWorkerPool.Wait()
+	}()
 
 	app.New(
 		urlUseCase,

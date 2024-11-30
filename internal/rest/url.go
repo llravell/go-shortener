@@ -23,7 +23,7 @@ type URLUseCase interface {
 }
 
 type URLDeleteUseCase interface {
-	QueueDelete(item *usecase.URLDeleteItem)
+	QueueDelete(item *entity.URLDeleteItem) error
 }
 
 type urlRoutes struct {
@@ -275,10 +275,15 @@ func (ur *urlRoutes) deleteUserURLS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ur.urlDeleteUC.QueueDelete(&usecase.URLDeleteItem{
+	err := ur.urlDeleteUC.QueueDelete(&entity.URLDeleteItem{
 		UserUUID: ur.getUserUUIDFromRequest(r),
 		Hashes:   urlHashes,
 	})
+	if err != nil {
+		http.Error(w, "delete urls failed", http.StatusInternalServerError)
+
+		return
+	}
 
 	w.WriteHeader(http.StatusAccepted)
 }

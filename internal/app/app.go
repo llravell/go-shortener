@@ -89,9 +89,6 @@ func (app *App) Run() {
 		Str("addr", app.addr).
 		Msgf("starting shortener server on '%s'", app.addr)
 
-	go app.urlDeleteUseCase.ProcessQueue()
-	defer app.urlDeleteUseCase.Close()
-
 	select {
 	case s := <-interrupt:
 		app.log.Info().Str("signal", s.String()).Msg("interrupt")

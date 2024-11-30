@@ -15,6 +15,10 @@ debugg: ### run app in debugg mode
 lint: ### run linter
 	golangci-lint run ./...
 
+.PHONY: test
+test: ### run tests
+	go test ./...
+
 .PHONY: migrate-up
 migrate-up: ### run migrations
 	bin/goose up
