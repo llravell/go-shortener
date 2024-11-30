@@ -48,7 +48,7 @@ func prepareTestServer(
 	urlDeleteUseCase := usecase.NewURLDeleteUseCase(repo, wp, logger)
 
 	router := chi.NewRouter()
-	auth := middleware.NewAuth("secret")
+	auth := middleware.NewAuth("secret", logger)
 	rest.NewURLRoutes(router, urlUseCase, urlDeleteUseCase, auth, logger)
 
 	ts := httptest.NewServer(router)

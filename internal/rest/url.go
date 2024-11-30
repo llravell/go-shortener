@@ -116,7 +116,14 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.urlUC.SaveURL(r.Context(), url, ur.getUserUUIDFromRequest(r))
+	userUUID := ur.getUserUUIDFromRequest(r)
+	if userUUID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+
+		return
+	}
+
+	urlObj, err := ur.urlUC.SaveURL(r.Context(), url, userUUID)
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			w.WriteHeader(http.StatusConflict)
@@ -144,7 +151,14 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	urlObj, err := ur.urlUC.SaveURL(r.Context(), urlReq.URL, ur.getUserUUIDFromRequest(r))
+	userUUID := ur.getUserUUIDFromRequest(r)
+	if userUUID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+
+		return
+	}
+
+	urlObj, err := ur.urlUC.SaveURL(r.Context(), urlReq.URL, userUUID)
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			w.Header().Set("Content-Type", "application/json")
@@ -178,12 +192,19 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userUUID := ur.getUserUUIDFromRequest(r)
+	if userUUID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+
+		return
+	}
+
 	urls := make([]string, 0, len(batchItems))
 	for _, item := range batchItems {
 		urls = append(urls, item.OriginalURL)
 	}
 
-	urlObjs, err := ur.urlUC.SaveURLMultiple(r.Context(), urls, ur.getUserUUIDFromRequest(r))
+	urlObjs, err := ur.urlUC.SaveURLMultiple(r.Context(), urls, userUUID)
 	if err != nil {
 		http.Error(w, "saving url failed", http.StatusInternalServerError)
 

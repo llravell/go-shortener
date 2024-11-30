@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/llravell/go-shortener/internal/entity"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -18,16 +19,27 @@ var UserUUIDContextKey contextKey = "userUUID"
 
 type Auth struct {
 	secret []byte
+	log    zerolog.Logger
 }
 
 func (auth *Auth) parseUserUUIDFromRequest(r *http.Request) string {
 	tokenCookie, err := r.Cookie(TokenCookieName)
 	if err != nil {
+		auth.log.Error().Err(err).Msg("jwt cookie finding failed")
+
 		return ""
 	}
 
 	claims, err := entity.ParseJWTString(tokenCookie.Value, auth.secret)
-	if err != nil || claims.Valid() != nil {
+	if err != nil {
+		auth.log.Error().Err(err).Msg("jwt parsing failed")
+
+		return ""
+	}
+
+	if err = claims.Valid(); err != nil {
+		auth.log.Error().Err(err).Msg("got invalid jwt")
+
 		return ""
 	}
 
@@ -54,6 +66,7 @@ func (auth *Auth) ProvideJWTMiddleware(next http.Handler) http.Handler {
 
 		jwtToken, err := entity.BuildJWTString(userUUID, auth.secret)
 		if err != nil {
+			auth.log.Error().Err(err).Msg("jwt building failed")
 			next.ServeHTTP(w, r)
 
 			return
@@ -84,9 +97,10 @@ func (auth *Auth) CheckJWTMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NewAuth(secretKey string) *Auth {
+func NewAuth(secretKey string, log zerolog.Logger) *Auth {
 	auth := &Auth{
 		secret: []byte(secretKey),
+		log:    log,
 	}
 
 	return auth

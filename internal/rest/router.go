@@ -18,7 +18,7 @@ func NewRouter(
 
 	router.Use(middleware.LoggerMiddleware(log))
 
-	auth := middleware.NewAuth(jwtSecret)
+	auth := middleware.NewAuth(jwtSecret, log)
 
 	NewHealthRoutes(router, healthUseCase, log)
 	NewURLRoutes(router, urlUseCase, urlDeleteUseCase, auth, log)

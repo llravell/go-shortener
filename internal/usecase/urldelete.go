@@ -13,7 +13,7 @@ type URLDeleteWorkerPool interface {
 
 type URLDeleteWork struct {
 	repo     URLRepo
-	log      zerolog.Logger
+	log      *zerolog.Logger
 	userUUID string
 	hashes   []string
 }
@@ -49,7 +49,7 @@ func NewURLDeleteUseCase(repo URLRepo, wp URLDeleteWorkerPool, log zerolog.Logge
 func (uc *URLDeleteUseCase) QueueDelete(deleteItem *entity.URLDeleteItem) error {
 	deleteWork := &URLDeleteWork{
 		repo:     uc.repo,
-		log:      uc.log,
+		log:      &uc.log,
 		userUUID: deleteItem.UserUUID,
 		hashes:   deleteItem.Hashes,
 	}
