@@ -14,20 +14,20 @@ type URLDeleteWorkerPool interface {
 type URLDeleteWork struct {
 	repo     URLRepo
 	log      *zerolog.Logger
-	userUUID string
-	hashes   []string
+	UserUUID string
+	Hashes   []string
 }
 
 func (w *URLDeleteWork) Do(ctx context.Context) {
-	err := w.repo.DeleteMultiple(ctx, w.userUUID, w.hashes)
+	err := w.repo.DeleteMultiple(ctx, w.UserUUID, w.Hashes)
 	if err != nil {
 		w.log.Error().
 			Err(err).
-			Str("userUUID", w.userUUID).
+			Str("userUUID", w.UserUUID).
 			Msg("delete urls failed")
 	} else {
 		w.log.Info().
-			Str("userUUID", w.userUUID).
+			Str("userUUID", w.UserUUID).
 			Msg("delete urls successeded")
 	}
 }
@@ -50,8 +50,8 @@ func (uc *URLDeleteUseCase) QueueDelete(deleteItem *entity.URLDeleteItem) error 
 	deleteWork := &URLDeleteWork{
 		repo:     uc.repo,
 		log:      &uc.log,
-		userUUID: deleteItem.UserUUID,
-		hashes:   deleteItem.Hashes,
+		UserUUID: deleteItem.UserUUID,
+		Hashes:   deleteItem.Hashes,
 	}
 
 	return uc.wp.QueueWork(deleteWork)

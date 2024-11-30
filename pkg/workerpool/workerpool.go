@@ -76,19 +76,3 @@ func (wp *WorkerPool[W]) Close() error {
 func (wp *WorkerPool[W]) Wait() {
 	wp.wg.Wait()
 }
-
-func (wp *WorkerPool[W]) Reset() *WorkerPool[W] {
-	if !wp.closed.Load() {
-		return wp
-	}
-
-	wp.Wait()
-
-	wp.worksChan = make(chan W, _defaultWorksChanSize)
-	wp.processOnce = sync.Once{}
-	wp.wg = sync.WaitGroup{}
-
-	wp.closed.Store(false)
-
-	return wp
-}

@@ -1,11 +1,12 @@
 package rest_test
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -18,13 +19,31 @@ import (
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
-	"github.com/llravell/go-shortener/pkg/workerpool"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var errNotFound = errors.New("not found")
+
+type urlDeleteWorkMatcher struct {
+	userUUID string
+	hashes   []string
+}
+
+func (m *urlDeleteWorkMatcher) Matches(x interface{}) bool {
+	urlDeleteWork, ok := x.(*usecase.URLDeleteWork)
+	if !ok {
+		return false
+	}
+
+	return (urlDeleteWork.UserUUID == m.userUUID &&
+		reflect.DeepEqual(urlDeleteWork.Hashes, m.hashes))
+}
+
+func (m *urlDeleteWorkMatcher) String() string {
+	return fmt.Sprintf("has userUUID=\"%s\" and hashes=\"%v\"", m.userUUID, m.hashes)
+}
 
 func toJSON(t *testing.T, m any) string {
 	t.Helper()
@@ -40,7 +59,7 @@ func toJSON(t *testing.T, m any) string {
 func prepareTestServer(
 	gen usecase.HashGenerator,
 	repo usecase.URLRepo,
-	wp *workerpool.WorkerPool[*usecase.URLDeleteWork],
+	wp usecase.URLDeleteWorkerPool,
 ) *httptest.Server {
 	logger := zerolog.Nop()
 
@@ -63,10 +82,11 @@ func prepareTestServer(
 func TestURLBaseRoutes(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+	wp := mocks.NewMockURLDeleteWorkerPool(gomock.NewController(t))
 
 	gen.EXPECT().Generate().AnyTimes()
 
-	ts := prepareTestServer(gen, repo, workerpool.New[*usecase.URLDeleteWork](0))
+	ts := prepareTestServer(gen, repo, wp)
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -191,8 +211,9 @@ func TestURLBaseRoutes(t *testing.T) {
 func TestURLBatchRoute(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
+	wp := mocks.NewMockURLDeleteWorkerPool(gomock.NewController(t))
 
-	ts := prepareTestServer(gen, repo, workerpool.New[*usecase.URLDeleteWork](0))
+	ts := prepareTestServer(gen, repo, wp)
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -263,7 +284,7 @@ func TestURLBatchRoute(t *testing.T) {
 func TestURLUserRoutes(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
-	wp := workerpool.New[*usecase.URLDeleteWork](1)
+	wp := mocks.NewMockURLDeleteWorkerPool(gomock.NewController(t))
 
 	ts := prepareTestServer(gen, repo, wp)
 	defer ts.Close()
@@ -328,16 +349,12 @@ func TestURLUserRoutes(t *testing.T) {
 	t.Run("Successful deleting several urls", func(t *testing.T) {
 		hashes := []string{"a", "b"}
 
-		repo.EXPECT().
-			DeleteMultiple(gomock.Any(), gomock.Any(), hashes).
-			Return(nil)
+		var workMatcher gomock.Matcher = &urlDeleteWorkMatcher{
+			userUUID: testutils.UserUUID,
+			hashes:   hashes,
+		}
 
-		wp.ProcessQueue(context.Background())
-
-		defer func() {
-			wp.Close()
-			wp.Reset()
-		}()
+		wp.EXPECT().QueueWork(workMatcher).Return(nil)
 
 		body := strings.NewReader(toJSON(t, hashes))
 		res, _ := testutils.SendTestRequest(

@@ -14,12 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const JWTSecretKey = "secret"
+const (
+	JWTSecretKey = "secret"
+	UserUUID     = "test-uuid"
+)
 
 func buildAuthTokenCookie(t *testing.T) *http.Cookie {
 	t.Helper()
 
-	jwtToken, err := entity.BuildJWTString("test-uuid", []byte(JWTSecretKey))
+	jwtToken, err := entity.BuildJWTString(UserUUID, []byte(JWTSecretKey))
 	require.NoError(t, err)
 
 	return &http.Cookie{
