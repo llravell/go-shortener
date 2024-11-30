@@ -1,4 +1,4 @@
-package httpv1_test
+package rest_test
 
 import (
 	"io"

@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	testutils "github.com/llravell/go-shortener/internal"
-	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
+	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/stretchr/testify/assert"
 )
 

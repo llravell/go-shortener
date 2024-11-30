@@ -11,9 +11,6 @@ type URLRepo interface {
 	StoreMultiple(ctx context.Context, urls []*entity.URL) error
 	Get(ctx context.Context, hash string) (*entity.URL, error)
 	GetByUserUUID(ctx context.Context, userUUID string) ([]*entity.URL, error)
-}
-
-type URLDeleteRepo interface {
 	DeleteMultiple(ctx context.Context, userUUID string, urlHashes []string) error
 }
 

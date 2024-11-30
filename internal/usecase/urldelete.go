@@ -19,7 +19,7 @@ type URLDeleteItem struct {
 }
 
 type URLDeleteUseCase struct {
-	repo             URLDeleteRepo
+	repo             URLRepo
 	urlDeleteItemsCh chan *URLDeleteItem
 	cancelled        atomic.Bool
 	processOnce      sync.Once
@@ -27,7 +27,7 @@ type URLDeleteUseCase struct {
 	wg               sync.WaitGroup
 }
 
-func NewURLDeleteUseCase(repo URLDeleteRepo, log zerolog.Logger) *URLDeleteUseCase {
+func NewURLDeleteUseCase(repo URLRepo, log zerolog.Logger) *URLDeleteUseCase {
 	return &URLDeleteUseCase{
 		repo:             repo,
 		log:              log,

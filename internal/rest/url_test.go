@@ -1,4 +1,4 @@
-package httpv1_test
+package rest_test
 
 import (
 	"encoding/json"
@@ -11,11 +11,12 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 	testutils "github.com/llravell/go-shortener/internal"
-	"github.com/llravell/go-shortener/internal/controller/httpv1"
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/mocks"
+	repository "github.com/llravell/go-shortener/internal/repo"
+	"github.com/llravell/go-shortener/internal/rest"
+	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
-	repository "github.com/llravell/go-shortener/internal/usecase/repo"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,14 +38,14 @@ func toJSON(t *testing.T, m any) string {
 func prepareTestServer(
 	gen usecase.HashGenerator,
 	repo usecase.URLRepo,
-	deleteRepo usecase.URLDeleteRepo,
 ) (*httptest.Server, *usecase.URLDeleteUseCase) {
 	logger := zerolog.Nop()
 	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
-	urlDeleteUseCase := usecase.NewURLDeleteUseCase(deleteRepo, logger)
+	urlDeleteUseCase := usecase.NewURLDeleteUseCase(repo, logger)
 
 	router := chi.NewRouter()
-	httpv1.NewURLRoutes(router, urlUseCase, urlDeleteUseCase, "secret", logger)
+	auth := middleware.NewAuth("secret")
+	rest.NewURLRoutes(router, urlUseCase, urlDeleteUseCase, auth, logger)
 
 	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
@@ -58,11 +59,10 @@ func prepareTestServer(
 func TestURLBaseRoutes(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
-	deleteRepo := mocks.NewMockURLDeleteRepo(gomock.NewController(t))
 
 	gen.EXPECT().Generate().AnyTimes()
 
-	ts, _ := prepareTestServer(gen, repo, deleteRepo)
+	ts, _ := prepareTestServer(gen, repo)
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -187,9 +187,8 @@ func TestURLBaseRoutes(t *testing.T) {
 func TestURLBatchRoute(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
-	deleteRepo := mocks.NewMockURLDeleteRepo(gomock.NewController(t))
 
-	ts, _ := prepareTestServer(gen, repo, deleteRepo)
+	ts, _ := prepareTestServer(gen, repo)
 	defer ts.Close()
 
 	testCases := []testCase{
@@ -260,9 +259,8 @@ func TestURLBatchRoute(t *testing.T) {
 func TestURLUserRoutes(t *testing.T) {
 	gen := mocks.NewMockHashGenerator(gomock.NewController(t))
 	repo := mocks.NewMockURLRepo(gomock.NewController(t))
-	deleteRepo := mocks.NewMockURLDeleteRepo(gomock.NewController(t))
 
-	ts, urlDeleteUseCase := prepareTestServer(gen, repo, deleteRepo)
+	ts, urlDeleteUseCase := prepareTestServer(gen, repo)
 	defer ts.Close()
 
 	urlDeleteUseCase.ProcessQueue()
@@ -305,7 +303,7 @@ func TestURLUserRoutes(t *testing.T) {
 		)
 		defer res.Body.Close()
 
-		expectedBody := toJSON(t, []httpv1.UserURLItem{
+		expectedBody := toJSON(t, []rest.UserURLItem{
 			{
 				ShortURL:    "http://localhost:8080/a",
 				OriginalURL: "https://a.ru",
@@ -328,7 +326,7 @@ func TestURLUserRoutes(t *testing.T) {
 	t.Run("Successful deleting several urls", func(t *testing.T) {
 		hashes := []string{"a", "b"}
 
-		deleteRepo.EXPECT().
+		repo.EXPECT().
 			DeleteMultiple(gomock.Any(), gomock.Any(), hashes).
 			Return(nil)
 

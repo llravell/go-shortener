@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/llravell/go-shortener/internal/entity"
-	"github.com/llravell/go-shortener/internal/usecase/repo"
+	"github.com/llravell/go-shortener/internal/repo"
 )
 
 var ErrURLDuplicate = errors.New("duplicate url")

@@ -1,4 +1,4 @@
-package httpv1_test
+package rest_test
 
 import (
 	"errors"
@@ -9,8 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 	testutils "github.com/llravell/go-shortener/internal"
-	"github.com/llravell/go-shortener/internal/controller/httpv1"
 	"github.com/llravell/go-shortener/internal/mocks"
+	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +24,7 @@ func TestHealthRoutes(t *testing.T) {
 	healthUseCase := usecase.NewHealthUseCase(repo)
 	router := chi.NewRouter()
 	logger := zerolog.Nop()
-	httpv1.NewHealthRoutes(router, healthUseCase, logger)
+	rest.NewHealthRoutes(router, healthUseCase, logger)
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()

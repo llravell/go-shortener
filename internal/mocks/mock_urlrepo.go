@@ -35,6 +35,20 @@ func (m *MockURLRepo) EXPECT() *MockURLRepoMockRecorder {
 	return m.recorder
 }
 
+// DeleteMultiple mocks base method.
+func (m *MockURLRepo) DeleteMultiple(arg0 context.Context, arg1 string, arg2 []string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteMultiple", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteMultiple indicates an expected call of DeleteMultiple.
+func (mr *MockURLRepoMockRecorder) DeleteMultiple(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMultiple", reflect.TypeOf((*MockURLRepo)(nil).DeleteMultiple), arg0, arg1, arg2)
+}
+
 // Get mocks base method.
 func (m *MockURLRepo) Get(arg0 context.Context, arg1 string) (*entity.URL, error) {
 	m.ctrl.T.Helper()

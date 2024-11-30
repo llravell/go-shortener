@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
 	"github.com/llravell/go-shortener/internal/entity"
+	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/stretchr/testify/require"
 )
 
