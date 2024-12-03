@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"embed"
 	"log"
@@ -114,14 +113,8 @@ func main() {
 	)
 	healthUseCase := usecase.NewHealthUseCase(db)
 
-	urlDeleteWorkerPool.ProcessQueue(context.Background())
-
-	defer func() {
-		urlDeleteWorkerPool.Close()
-
-		log.Info().Msg("delete worker pool finish waiting...")
-		urlDeleteWorkerPool.Wait()
-	}()
+	urlDeleteWorkerPool.ProcessQueue()
+	defer urlDeleteWorkerPool.Close()
 
 	app.New(
 		urlUseCase,
