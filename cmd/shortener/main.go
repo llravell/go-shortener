@@ -114,7 +114,13 @@ func main() {
 	healthUseCase := usecase.NewHealthUseCase(db)
 
 	urlDeleteWorkerPool.ProcessQueue()
-	defer urlDeleteWorkerPool.Close()
+
+	defer func() {
+		urlDeleteWorkerPool.Close()
+
+		log.Info().Msg("delete worker pool finish waiting...")
+		urlDeleteWorkerPool.Wait()
+	}()
 
 	app.New(
 		urlUseCase,
