@@ -20,7 +20,6 @@ type Work interface {
 type WorkerPool[W Work] struct {
 	workersAmount int
 	worksChan     chan W
-	doneChan      chan struct{}
 	closed        atomic.Bool
 	processOnce   sync.Once
 	wg            sync.WaitGroup
@@ -30,7 +29,6 @@ func New[W Work](workersAmount int) *WorkerPool[W] {
 	return &WorkerPool[W]{
 		workersAmount: workersAmount,
 		worksChan:     make(chan W, _defaultWorksChanSize),
-		doneChan:      make(chan struct{}),
 	}
 }
 
@@ -45,34 +43,21 @@ func (wp *WorkerPool[W]) QueueWork(work W) error {
 }
 
 func (wp *WorkerPool[W]) worker(ctx context.Context) {
+	wp.wg.Add(1)
 	defer wp.wg.Done()
 
-	select {
-	case <-ctx.Done():
-		return
-	case work, ok := <-wp.worksChan:
-		if !ok {
-			return
-		}
-
+	for work := range wp.worksChan {
 		work.Do(ctx)
 	}
 }
 
-func (wp *WorkerPool[W]) ProcessQueue() {
+func (wp *WorkerPool[W]) ProcessQueue(ctx context.Context) {
 	if wp.closed.Load() {
 		return
 	}
 
 	wp.processOnce.Do(func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		go func() {
-			<-wp.doneChan
-			cancel()
-		}()
-
 		for range wp.workersAmount {
-			wp.wg.Add(1)
 			go wp.worker(ctx)
 		}
 	})
@@ -83,7 +68,6 @@ func (wp *WorkerPool[W]) Close() error {
 
 	if !hasBeenCanceled {
 		close(wp.worksChan)
-		close(wp.doneChan)
 	}
 
 	return nil
