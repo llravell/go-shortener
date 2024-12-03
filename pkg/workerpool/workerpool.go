@@ -48,7 +48,11 @@ func (wp *WorkerPool[W]) worker(ctx context.Context) {
 	select {
 	case <-ctx.Done():
 		return
-	case work := <-wp.worksChan:
+	case work, ok := <-wp.worksChan:
+		if !ok {
+			return
+		}
+
 		work.Do(ctx)
 	}
 }
