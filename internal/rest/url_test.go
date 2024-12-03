@@ -63,12 +63,11 @@ func prepareTestServer(
 ) *httptest.Server {
 	logger := zerolog.Nop()
 
-	urlUseCase := usecase.NewURLUseCase(repo, gen, "http://localhost:8080")
-	urlDeleteUseCase := usecase.NewURLDeleteUseCase(repo, wp, logger)
+	urlUseCase := usecase.NewURLUseCase(repo, wp, gen, "http://localhost:8080", logger)
 
 	router := chi.NewRouter()
 	auth := middleware.NewAuth("secret", logger)
-	rest.NewURLRoutes(router, urlUseCase, urlDeleteUseCase, auth, logger)
+	rest.NewURLRoutes(router, urlUseCase, auth, logger)
 
 	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {

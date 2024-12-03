@@ -7,20 +7,56 @@ import (
 
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/repo"
+	"github.com/rs/zerolog"
 )
 
 var ErrURLDuplicate = errors.New("duplicate url")
 
+type URLDeleteWorkerPool interface {
+	QueueWork(w *URLDeleteWork) error
+}
+
+type URLDeleteWork struct {
+	repo     URLRepo
+	log      *zerolog.Logger
+	UserUUID string
+	Hashes   []string
+}
+
+func (w *URLDeleteWork) Do(ctx context.Context) {
+	err := w.repo.DeleteMultiple(ctx, w.UserUUID, w.Hashes)
+	if err != nil {
+		w.log.Error().
+			Err(err).
+			Str("userUUID", w.UserUUID).
+			Msg("delete urls failed")
+	} else {
+		w.log.Info().
+			Str("userUUID", w.UserUUID).
+			Msg("delete urls successeded")
+	}
+}
+
 type URLUseCase struct {
 	repo            URLRepo
+	wp              URLDeleteWorkerPool
 	gen             HashGenerator
+	log             zerolog.Logger
 	baseRedirectURL string
 }
 
-func NewURLUseCase(repo URLRepo, gen HashGenerator, baseRedirectURL string) *URLUseCase {
+func NewURLUseCase(
+	repo URLRepo,
+	wp URLDeleteWorkerPool,
+	gen HashGenerator,
+	baseRedirectURL string,
+	log zerolog.Logger,
+) *URLUseCase {
 	return &URLUseCase{
 		repo:            repo,
+		wp:              wp,
 		gen:             gen,
+		log:             log,
 		baseRedirectURL: baseRedirectURL,
 	}
 }
@@ -70,4 +106,15 @@ func (uc *URLUseCase) GetUserURLS(ctx context.Context, userUUID string) ([]*enti
 
 func (uc *URLUseCase) BuildRedirectURL(url *entity.URL) string {
 	return fmt.Sprintf("%s/%s", uc.baseRedirectURL, url.Short)
+}
+
+func (uc *URLUseCase) QueueDelete(deleteItem *entity.URLDeleteItem) error {
+	deleteWork := &URLDeleteWork{
+		repo:     uc.repo,
+		log:      &uc.log,
+		UserUUID: deleteItem.UserUUID,
+		Hashes:   deleteItem.Hashes,
+	}
+
+	return uc.wp.QueueWork(deleteWork)
 }

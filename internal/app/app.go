@@ -26,12 +26,11 @@ func startServer(addr string, handler http.Handler) error {
 type Option func(app *App)
 
 type App struct {
-	urlUseCase       *usecase.URLUseCase
-	urlDeleteUseCase *usecase.URLDeleteUseCase
-	healthUseCase    *usecase.HealthUseCase
-	log              zerolog.Logger
-	addr             string
-	jwtSecret        string
+	urlUseCase    *usecase.URLUseCase
+	healthUseCase *usecase.HealthUseCase
+	log           zerolog.Logger
+	addr          string
+	jwtSecret     string
 }
 
 func Addr(addr string) Option {
@@ -48,16 +47,14 @@ func JWTSecret(secret string) Option {
 
 func New(
 	urlUseCase *usecase.URLUseCase,
-	urlDeleteUseCase *usecase.URLDeleteUseCase,
 	healthUseCase *usecase.HealthUseCase,
 	log zerolog.Logger,
 	opts ...Option,
 ) *App {
 	app := &App{
-		urlUseCase:       urlUseCase,
-		urlDeleteUseCase: urlDeleteUseCase,
-		healthUseCase:    healthUseCase,
-		log:              log,
+		urlUseCase:    urlUseCase,
+		healthUseCase: healthUseCase,
+		log:           log,
 	}
 
 	for _, opt := range opts {
@@ -70,7 +67,6 @@ func New(
 func (app *App) Run() {
 	router := rest.NewRouter(
 		app.urlUseCase,
-		app.urlDeleteUseCase,
 		app.healthUseCase,
 		app.jwtSecret,
 		app.log,

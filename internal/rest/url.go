@@ -20,16 +20,12 @@ type URLUseCase interface {
 	ResolveURL(ctx context.Context, hash string) (*entity.URL, error)
 	GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error)
 	BuildRedirectURL(url *entity.URL) string
-}
-
-type URLDeleteUseCase interface {
 	QueueDelete(item *entity.URLDeleteItem) error
 }
 
 type urlRoutes struct {
-	urlUC       URLUseCase
-	urlDeleteUC URLDeleteUseCase
-	log         zerolog.Logger
+	urlUC URLUseCase
+	log   zerolog.Logger
 }
 
 type saveURLRequest struct {
@@ -58,14 +54,12 @@ type UserURLItem struct {
 func NewURLRoutes(
 	r chi.Router,
 	urlUC URLUseCase,
-	urlDeleteUC URLDeleteUseCase,
 	auth *middleware.Auth,
 	log zerolog.Logger,
 ) {
 	routes := &urlRoutes{
-		urlUC:       urlUC,
-		urlDeleteUC: urlDeleteUC,
-		log:         log,
+		urlUC: urlUC,
+		log:   log,
 	}
 
 	r.Get("/{id}", routes.resolveURL)
@@ -296,7 +290,7 @@ func (ur *urlRoutes) deleteUserURLS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ur.urlDeleteUC.QueueDelete(&entity.URLDeleteItem{
+	err := ur.urlUC.QueueDelete(&entity.URLDeleteItem{
 		UserUUID: ur.getUserUUIDFromRequest(r),
 		Hashes:   urlHashes,
 	})

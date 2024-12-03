@@ -107,12 +107,9 @@ func main() {
 
 	urlUseCase := usecase.NewURLUseCase(
 		urlRepo,
+		urlDeleteWorkerPool,
 		entity.NewRandomStringGenerator(),
 		cfg.BaseAddr,
-	)
-	urlDeleteUseCase := usecase.NewURLDeleteUseCase(
-		urlRepo,
-		urlDeleteWorkerPool,
 		log,
 	)
 	healthUseCase := usecase.NewHealthUseCase(db)
@@ -128,7 +125,6 @@ func main() {
 
 	app.New(
 		urlUseCase,
-		urlDeleteUseCase,
 		healthUseCase,
 		log,
 		app.Addr(cfg.Addr),
