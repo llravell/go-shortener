@@ -95,7 +95,7 @@ func (u *URLDatabaseRepo) Get(ctx context.Context, hash string) (*entity.URL, er
 	return &url, nil
 }
 
-func (u *URLDatabaseRepo) GetByUserUUID(ctx context.Context, userUUID string) ([]*entity.URL, error) {
+func (u *URLDatabaseRepo) GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error) {
 	urls := make([]*entity.URL, 0)
 
 	rows, err := u.conn.QueryContext(

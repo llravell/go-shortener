@@ -12,18 +12,19 @@ type HealthUseCase interface {
 	PingContext(ctx context.Context) error
 }
 
-type healthRoutes struct {
+type HealthRoutes struct {
 	healthUC HealthUseCase
 	log      zerolog.Logger
 }
 
-func NewHealthRoutes(r chi.Router, h HealthUseCase, l zerolog.Logger) {
-	routes := &healthRoutes{h, l}
-
-	r.Get("/ping", routes.ping)
+func NewHealthRoutes(healthUC HealthUseCase, log zerolog.Logger) *HealthRoutes {
+	return &HealthRoutes{
+		healthUC: healthUC,
+		log:      log,
+	}
 }
 
-func (hr *healthRoutes) ping(w http.ResponseWriter, r *http.Request) {
+func (hr *HealthRoutes) ping(w http.ResponseWriter, r *http.Request) {
 	err := hr.healthUC.PingContext(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -32,4 +33,8 @@ func (hr *healthRoutes) ping(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (hr *HealthRoutes) Apply(r chi.Router) {
+	r.Get("/ping", hr.ping)
 }

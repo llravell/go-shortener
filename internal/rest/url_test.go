@@ -67,7 +67,9 @@ func prepareTestServer(
 
 	router := chi.NewRouter()
 	auth := middleware.NewAuth("secret", logger)
-	rest.NewURLRoutes(router, urlUseCase, auth, logger)
+	urlRoutes := rest.NewURLRoutes(urlUseCase, auth, logger)
+
+	urlRoutes.Apply(router)
 
 	ts := httptest.NewServer(router)
 	ts.Client().CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
@@ -299,7 +301,7 @@ func TestURLUserRoutes(t *testing.T) {
 
 	t.Run("Return no content status code user without urls", func(t *testing.T) {
 		repo.EXPECT().
-			GetByUserUUID(gomock.Any(), gomock.Any()).
+			GetUserURLS(gomock.Any(), gomock.Any()).
 			Return([]*entity.URL{}, nil)
 
 		res, _ := testutils.SendTestRequest(
@@ -312,7 +314,7 @@ func TestURLUserRoutes(t *testing.T) {
 
 	t.Run("Return user's urls", func(t *testing.T) {
 		repo.EXPECT().
-			GetByUserUUID(gomock.Any(), gomock.Any()).
+			GetUserURLS(gomock.Any(), gomock.Any()).
 			Return([]*entity.URL{
 				{
 					Short:    "a",

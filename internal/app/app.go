@@ -75,10 +75,10 @@ func (app *App) Run() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	serverNorify := make(chan error, 1)
+	serverNotify := make(chan error, 1)
 	go func() {
-		serverNorify <- startServer(app.addr, router)
-		close(serverNorify)
+		serverNotify <- startServer(app.addr, router.Mux)
+		close(serverNotify)
 	}()
 
 	app.log.Info().
@@ -88,7 +88,7 @@ func (app *App) Run() {
 	select {
 	case s := <-interrupt:
 		app.log.Info().Str("signal", s.String()).Msg("interrupt")
-	case err := <-serverNorify:
+	case err := <-serverNotify:
 		app.log.Error().Err(err).Msg("shortener server has been closed")
 	}
 }

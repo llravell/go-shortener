@@ -7,20 +7,37 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type Router struct {
+	Mux           chi.Router
+	urlUseCase    *usecase.URLUseCase
+	healthUseCase *usecase.HealthUseCase
+	jwtSecret     string
+	log           zerolog.Logger
+}
+
 func NewRouter(
 	urlUseCase *usecase.URLUseCase,
 	healthUseCase *usecase.HealthUseCase,
 	jwtSecret string,
 	log zerolog.Logger,
-) *chi.Mux {
-	router := chi.NewRouter()
+) *Router {
+	router := &Router{
+		Mux:           chi.NewRouter(),
+		urlUseCase:    urlUseCase,
+		healthUseCase: healthUseCase,
+		jwtSecret:     jwtSecret,
+		log:           log,
+	}
 
-	router.Use(middleware.LoggerMiddleware(log))
+	router.Mux.Use(middleware.LoggerMiddleware(log))
 
 	auth := middleware.NewAuth(jwtSecret, log)
 
-	NewHealthRoutes(router, healthUseCase, log)
-	NewURLRoutes(router, urlUseCase, auth, log)
+	healthRoutes := NewHealthRoutes(healthUseCase, log)
+	urlRoutes := NewURLRoutes(urlUseCase, auth, log)
+
+	healthRoutes.Apply(router.Mux)
+	urlRoutes.Apply(router.Mux)
 
 	return router
 }

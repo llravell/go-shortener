@@ -23,8 +23,9 @@ type URLUseCase interface {
 	QueueDelete(item *entity.URLDeleteItem) error
 }
 
-type urlRoutes struct {
+type URLRoutes struct {
 	urlUC URLUseCase
+	auth  *middleware.Auth
 	log   zerolog.Logger
 }
 
@@ -52,44 +53,18 @@ type UserURLItem struct {
 }
 
 func NewURLRoutes(
-	r chi.Router,
 	urlUC URLUseCase,
 	auth *middleware.Auth,
 	log zerolog.Logger,
-) {
-	routes := &urlRoutes{
+) *URLRoutes {
+	return &URLRoutes{
 		urlUC: urlUC,
+		auth:  auth,
 		log:   log,
 	}
-
-	r.Get("/{id}", routes.resolveURL)
-	r.With(middleware.DecompressMiddleware()).
-		With(auth.ProvideJWTMiddleware).
-		Post("/", routes.saveURLLegacy)
-
-	r.Route("/api", func(r chi.Router) {
-		r.Use(middleware.CompressMiddleware("application/json"))
-		r.Use(middleware.DecompressMiddleware())
-
-		r.Route("/shorten", func(r chi.Router) {
-			r.Use(auth.ProvideJWTMiddleware)
-
-			r.Post("/", routes.saveURL)
-			r.Post("/batch", routes.saveURLMultiple)
-		})
-
-		r.Route("/user", func(r chi.Router) {
-			r.Route("/urls", func(r chi.Router) {
-				r.Use(auth.CheckJWTMiddleware)
-
-				r.Get("/", routes.getUserURLS)
-				r.Delete("/", routes.deleteUserURLS)
-			})
-		})
-	})
 }
 
-func (ur *urlRoutes) getUserUUIDFromRequest(r *http.Request) string {
+func (ur *URLRoutes) getUserUUIDFromRequest(r *http.Request) string {
 	v := r.Context().Value(middleware.UserUUIDContextKey)
 	userUUID, ok := v.(string)
 
@@ -100,11 +75,17 @@ func (ur *urlRoutes) getUserUUIDFromRequest(r *http.Request) string {
 	return userUUID
 }
 
-func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
+func (ur *URLRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 	res, err := io.ReadAll(r.Body)
 	url := string(res)
 
-	if err != nil || url == "" {
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+
+		return
+	}
+
+	if url == "" {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 
 		return
@@ -117,10 +98,12 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	statusCode := http.StatusCreated
+
 	urlObj, err := ur.urlUC.SaveURL(r.Context(), url, userUUID)
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
-			w.WriteHeader(http.StatusConflict)
+			statusCode = http.StatusConflict
 		} else {
 			http.Error(w, "saving url failed", http.StatusInternalServerError)
 
@@ -128,15 +111,17 @@ func (ur *urlRoutes) saveURLLegacy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(statusCode)
 
 	_, err = w.Write([]byte(ur.urlUC.BuildRedirectURL(urlObj)))
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
+
+		return
 	}
 }
 
-func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
+func (ur *URLRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	var urlReq saveURLRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&urlReq); err != nil {
@@ -174,10 +159,12 @@ func (ur *urlRoutes) saveURL(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(resp)
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
+
+		return
 	}
 }
 
-func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
+func (ur *URLRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 	var batchItems []URLBatchRequestItem
 
 	if err := json.NewDecoder(r.Body).Decode(&batchItems); err != nil {
@@ -222,10 +209,12 @@ func (ur *urlRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(responseItems)
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
+
+		return
 	}
 }
 
-func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
+func (ur *URLRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	hash := r.PathValue(`id`)
 
 	url, err := ur.urlUC.ResolveURL(r.Context(), hash)
@@ -246,7 +235,7 @@ func (ur *urlRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, url.Original, http.StatusTemporaryRedirect)
 }
 
-func (ur *urlRoutes) getUserURLS(w http.ResponseWriter, r *http.Request) {
+func (ur *URLRoutes) getUserURLS(w http.ResponseWriter, r *http.Request) {
 	userUUID := ur.getUserUUIDFromRequest(r)
 
 	userURLS, err := ur.urlUC.GetUserURLS(r.Context(), userUUID)
@@ -278,10 +267,12 @@ func (ur *urlRoutes) getUserURLS(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(responseItems)
 	if err != nil {
 		ur.log.Err(err).Msg("response write has been failed")
+
+		return
 	}
 }
 
-func (ur *urlRoutes) deleteUserURLS(w http.ResponseWriter, r *http.Request) {
+func (ur *URLRoutes) deleteUserURLS(w http.ResponseWriter, r *http.Request) {
 	var urlHashes []string
 
 	if err := json.NewDecoder(r.Body).Decode(&urlHashes); err != nil {
@@ -301,4 +292,32 @@ func (ur *urlRoutes) deleteUserURLS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func (ur *URLRoutes) Apply(r chi.Router) {
+	r.Get("/{id}", ur.resolveURL)
+	r.With(middleware.DecompressMiddleware()).
+		With(ur.auth.ProvideJWTMiddleware).
+		Post("/", ur.saveURLLegacy)
+
+	r.Route("/api", func(r chi.Router) {
+		r.Use(middleware.CompressMiddleware("application/json"))
+		r.Use(middleware.DecompressMiddleware())
+
+		r.Route("/shorten", func(r chi.Router) {
+			r.Use(ur.auth.ProvideJWTMiddleware)
+
+			r.Post("/", ur.saveURL)
+			r.Post("/batch", ur.saveURLMultiple)
+		})
+
+		r.Route("/user", func(r chi.Router) {
+			r.Route("/urls", func(r chi.Router) {
+				r.Use(ur.auth.CheckJWTMiddleware)
+
+				r.Get("/", ur.getUserURLS)
+				r.Delete("/", ur.deleteUserURLS)
+			})
+		})
+	})
 }

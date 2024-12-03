@@ -43,10 +43,12 @@ func (wp *WorkerPool[W]) QueueWork(work W) error {
 }
 
 func (wp *WorkerPool[W]) worker(ctx context.Context) {
-	wp.wg.Add(1)
 	defer wp.wg.Done()
 
-	for work := range wp.worksChan {
+	select {
+	case <-ctx.Done():
+		return
+	case work := <-wp.worksChan:
 		work.Do(ctx)
 	}
 }
@@ -57,8 +59,16 @@ func (wp *WorkerPool[W]) ProcessQueue(ctx context.Context) {
 	}
 
 	wp.processOnce.Do(func() {
-		for range wp.workersAmount {
-			go wp.worker(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			for range wp.workersAmount {
+				wp.wg.Add(1)
+				go wp.worker(ctx)
+			}
+
+			return
 		}
 	})
 }

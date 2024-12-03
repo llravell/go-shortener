@@ -46,7 +46,7 @@ func (u *URLMemoRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
 	return url, nil
 }
 
-func (u *URLMemoRepo) GetByUserUUID(_ context.Context, userUUID string) ([]*entity.URL, error) {
+func (u *URLMemoRepo) GetUserURLS(_ context.Context, userUUID string) ([]*entity.URL, error) {
 	urls := make([]*entity.URL, 0)
 
 	for _, url := range u.m {

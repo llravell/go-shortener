@@ -30,11 +30,13 @@ func (w *URLDeleteWork) Do(ctx context.Context) {
 			Err(err).
 			Str("userUUID", w.UserUUID).
 			Msg("delete urls failed")
-	} else {
-		w.log.Info().
-			Str("userUUID", w.UserUUID).
-			Msg("delete urls successeded")
+
+		return
 	}
+
+	w.log.Info().
+		Str("userUUID", w.UserUUID).
+		Msg("delete urls successeded")
 }
 
 type URLUseCase struct {
@@ -101,7 +103,7 @@ func (uc *URLUseCase) ResolveURL(ctx context.Context, hash string) (*entity.URL,
 }
 
 func (uc *URLUseCase) GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error) {
-	return uc.repo.GetByUserUUID(ctx, userUUID)
+	return uc.repo.GetUserURLS(ctx, userUUID)
 }
 
 func (uc *URLUseCase) BuildRedirectURL(url *entity.URL) string {
