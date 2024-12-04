@@ -23,8 +23,8 @@ type URLDeleteWork struct {
 	Hashes   []string
 }
 
-func (w *URLDeleteWork) Do() {
-	err := w.repo.DeleteMultiple(context.Background(), w.UserUUID, w.Hashes)
+func (w *URLDeleteWork) Do(ctx context.Context) {
+	err := w.repo.DeleteMultiple(ctx, w.UserUUID, w.Hashes)
 	if err != nil {
 		w.log.Error().
 			Err(err).
