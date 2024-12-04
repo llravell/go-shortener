@@ -163,7 +163,7 @@ func TestURLBaseRoutes(t *testing.T) {
 			path:   "/a",
 			prepareMocks: func() {
 				repo.EXPECT().
-					Get(gomock.Any(), "a").
+					GetURL(gomock.Any(), "a").
 					Return(&entity.URL{Original: "https://a.ru"}, nil)
 			},
 			expectedCode: http.StatusTemporaryRedirect,
@@ -174,7 +174,7 @@ func TestURLBaseRoutes(t *testing.T) {
 			path:   "/not_existed_hash",
 			prepareMocks: func() {
 				repo.EXPECT().
-					Get(gomock.Any(), "not_existed_hash").
+					GetURL(gomock.Any(), "not_existed_hash").
 					Return(nil, errNotFound)
 			},
 			expectedCode: http.StatusBadRequest,
@@ -185,7 +185,7 @@ func TestURLBaseRoutes(t *testing.T) {
 			path:   "/deleted_url",
 			prepareMocks: func() {
 				repo.EXPECT().
-					Get(gomock.Any(), "deleted_url").
+					GetURL(gomock.Any(), "deleted_url").
 					Return(&entity.URL{Deleted: true}, nil)
 			},
 			expectedCode: http.StatusGone,
@@ -239,7 +239,7 @@ func TestURLBatchRoute(t *testing.T) {
 				)
 
 				repo.EXPECT().
-					StoreMultiple(gomock.Any(), gomock.Any()).
+					StoreMultipleURLs(gomock.Any(), gomock.Any()).
 					Return(nil)
 			},
 			expectedCode: http.StatusCreated,

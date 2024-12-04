@@ -35,33 +35,33 @@ func (m *MockURLRepo) EXPECT() *MockURLRepoMockRecorder {
 	return m.recorder
 }
 
-// DeleteMultiple mocks base method.
-func (m *MockURLRepo) DeleteMultiple(arg0 context.Context, arg1 string, arg2 []string) error {
+// DeleteMultipleURLs mocks base method.
+func (m *MockURLRepo) DeleteMultipleURLs(arg0 context.Context, arg1 string, arg2 []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteMultiple", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "DeleteMultipleURLs", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteMultiple indicates an expected call of DeleteMultiple.
-func (mr *MockURLRepoMockRecorder) DeleteMultiple(arg0, arg1, arg2 interface{}) *gomock.Call {
+// DeleteMultipleURLs indicates an expected call of DeleteMultipleURLs.
+func (mr *MockURLRepoMockRecorder) DeleteMultipleURLs(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMultiple", reflect.TypeOf((*MockURLRepo)(nil).DeleteMultiple), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMultipleURLs", reflect.TypeOf((*MockURLRepo)(nil).DeleteMultipleURLs), arg0, arg1, arg2)
 }
 
-// Get mocks base method.
-func (m *MockURLRepo) Get(arg0 context.Context, arg1 string) (*entity.URL, error) {
+// GetURL mocks base method.
+func (m *MockURLRepo) GetURL(arg0 context.Context, arg1 string) (*entity.URL, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetURL", arg0, arg1)
 	ret0, _ := ret[0].(*entity.URL)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Get indicates an expected call of Get.
-func (mr *MockURLRepoMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
+// GetURL indicates an expected call of GetURL.
+func (mr *MockURLRepoMockRecorder) GetURL(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockURLRepo)(nil).Get), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURL", reflect.TypeOf((*MockURLRepo)(nil).GetURL), arg0, arg1)
 }
 
 // GetUserURLS mocks base method.
@@ -94,16 +94,16 @@ func (mr *MockURLRepoMockRecorder) Store(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockURLRepo)(nil).Store), arg0, arg1)
 }
 
-// StoreMultiple mocks base method.
-func (m *MockURLRepo) StoreMultiple(arg0 context.Context, arg1 []*entity.URL) error {
+// StoreMultipleURLs mocks base method.
+func (m *MockURLRepo) StoreMultipleURLs(arg0 context.Context, arg1 []*entity.URL) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StoreMultiple", arg0, arg1)
+	ret := m.ctrl.Call(m, "StoreMultipleURLs", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// StoreMultiple indicates an expected call of StoreMultiple.
-func (mr *MockURLRepoMockRecorder) StoreMultiple(arg0, arg1 interface{}) *gomock.Call {
+// StoreMultipleURLs indicates an expected call of StoreMultipleURLs.
+func (mr *MockURLRepoMockRecorder) StoreMultipleURLs(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreMultiple", reflect.TypeOf((*MockURLRepo)(nil).StoreMultiple), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreMultipleURLs", reflect.TypeOf((*MockURLRepo)(nil).StoreMultipleURLs), arg0, arg1)
 }

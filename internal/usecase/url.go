@@ -24,7 +24,7 @@ type URLDeleteWork struct {
 }
 
 func (w *URLDeleteWork) Do(ctx context.Context) {
-	err := w.repo.DeleteMultiple(ctx, w.UserUUID, w.Hashes)
+	err := w.repo.DeleteMultipleURLs(ctx, w.UserUUID, w.Hashes)
 	if err != nil {
 		w.log.Error().
 			Err(err).
@@ -95,11 +95,11 @@ func (uc *URLUseCase) SaveURLMultiple(ctx context.Context, urls []string, userUU
 		urlObjs = append(urlObjs, &entity.URL{Original: url, Short: hash, UserUUID: userUUID})
 	}
 
-	return urlObjs, uc.repo.StoreMultiple(ctx, urlObjs)
+	return urlObjs, uc.repo.StoreMultipleURLs(ctx, urlObjs)
 }
 
 func (uc *URLUseCase) ResolveURL(ctx context.Context, hash string) (*entity.URL, error) {
-	return uc.repo.Get(ctx, hash)
+	return uc.repo.GetURL(ctx, hash)
 }
 
 func (uc *URLUseCase) GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error) {

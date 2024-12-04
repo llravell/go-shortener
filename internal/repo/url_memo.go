@@ -3,12 +3,14 @@ package repo
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
 type URLMemoRepo struct {
-	m map[string]*entity.URL
+	m  map[string]*entity.URL
+	mu sync.Mutex
 }
 
 type URLNotFoundError struct {
@@ -20,25 +22,34 @@ func (err *URLNotFoundError) Error() string {
 }
 
 func NewURLMemoRepo() *URLMemoRepo {
-	return &URLMemoRepo{make(map[string]*entity.URL)}
+	return &URLMemoRepo{
+		m: make(map[string]*entity.URL),
+	}
 }
 
-func (u *URLMemoRepo) Store(_ context.Context, url *entity.URL) (*entity.URL, error) {
-	u.m[url.Short] = url
+func (r *URLMemoRepo) Store(_ context.Context, url *entity.URL) (*entity.URL, error) {
+	r.mu.Lock()
+	r.m[url.Short] = url
+	r.mu.Unlock()
 
 	return url, nil
 }
 
-func (u *URLMemoRepo) StoreMultiple(_ context.Context, urls []*entity.URL) error {
+func (r *URLMemoRepo) StoreMultipleURLs(_ context.Context, urls []*entity.URL) error {
+	r.mu.Lock()
 	for _, url := range urls {
-		u.m[url.Short] = url
+		r.m[url.Short] = url
 	}
+	r.mu.Unlock()
 
 	return nil
 }
 
-func (u *URLMemoRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
-	url, ok := u.m[hash]
+func (r *URLMemoRepo) GetURL(_ context.Context, hash string) (*entity.URL, error) {
+	r.mu.Lock()
+	url, ok := r.m[hash]
+	r.mu.Unlock()
+
 	if !ok {
 		return nil, &URLNotFoundError{hash}
 	}
@@ -46,42 +57,49 @@ func (u *URLMemoRepo) Get(_ context.Context, hash string) (*entity.URL, error) {
 	return url, nil
 }
 
-func (u *URLMemoRepo) GetUserURLS(_ context.Context, userUUID string) ([]*entity.URL, error) {
+func (r *URLMemoRepo) GetUserURLS(_ context.Context, userUUID string) ([]*entity.URL, error) {
 	urls := make([]*entity.URL, 0)
 
-	for _, url := range u.m {
+	r.mu.Lock()
+	for _, url := range r.m {
 		if url.UserUUID == userUUID {
 			urls = append(urls, url)
 		}
 	}
+	r.mu.Unlock()
 
 	return urls, nil
 }
 
-func (u *URLMemoRepo) GetList() []*entity.URL {
-	list := make([]*entity.URL, 0, len(u.m))
+func (r *URLMemoRepo) GetList() []*entity.URL {
+	list := make([]*entity.URL, 0, len(r.m))
 
-	for _, url := range u.m {
+	r.mu.Lock()
+	for _, url := range r.m {
 		list = append(list, url)
 	}
+	r.mu.Unlock()
 
 	return list
 }
 
-func (u *URLMemoRepo) Init(urls []*entity.URL) {
+func (r *URLMemoRepo) Init(urls []*entity.URL) {
+	r.mu.Lock()
 	for _, url := range urls {
-		u.m[url.Short] = url
+		r.m[url.Short] = url
 	}
+	r.mu.Unlock()
 }
 
-func (u *URLMemoRepo) DeleteMultiple(_ context.Context, userUUID string, urlHashes []string) error {
+func (r *URLMemoRepo) DeleteMultipleURLs(_ context.Context, userUUID string, urlHashes []string) error {
 	urlHashesToDelete := make(map[string]struct{}, len(urlHashes))
 
 	for _, hash := range urlHashes {
 		urlHashesToDelete[hash] = struct{}{}
 	}
 
-	for _, url := range u.m {
+	r.mu.Lock()
+	for _, url := range r.m {
 		if url.UserUUID != userUUID {
 			continue
 		}
@@ -91,6 +109,7 @@ func (u *URLMemoRepo) DeleteMultiple(_ context.Context, userUUID string, urlHash
 			url.Deleted = true
 		}
 	}
+	r.mu.Unlock()
 
 	return nil
 }

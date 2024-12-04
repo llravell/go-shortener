@@ -27,8 +27,8 @@ func (u *URLDatabaseRepo) getNullableUserUUID(url *entity.URL) sql.NullString {
 	}
 }
 
-func (u *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
-	storedURL, err := u.getByOriginalURL(ctx, url.Original)
+func (r *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
+	storedURL, err := r.getByOriginalURL(ctx, url.Original)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
@@ -37,12 +37,12 @@ func (u *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.U
 		return storedURL, ErrOriginalURLConflict
 	}
 
-	row := u.conn.QueryRowContext(ctx, `
+	row := r.conn.QueryRowContext(ctx, `
 		INSERT INTO urls (url, short, user_uuid)
 		VALUES
 			($1, $2, $3)
 		RETURNING uuid, url, short;
-	`, url.Original, url.Short, u.getNullableUserUUID(url))
+	`, url.Original, url.Short, r.getNullableUserUUID(url))
 
 	var returnedURL entity.URL
 
@@ -54,8 +54,8 @@ func (u *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.U
 	return &returnedURL, nil
 }
 
-func (u *URLDatabaseRepo) StoreMultiple(ctx context.Context, urls []*entity.URL) error {
-	tx, err := u.conn.BeginTx(ctx, nil)
+func (r *URLDatabaseRepo) StoreMultipleURLs(ctx context.Context, urls []*entity.URL) error {
+	tx, err := r.conn.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (u *URLDatabaseRepo) StoreMultiple(ctx context.Context, urls []*entity.URL)
 			INSERT INTO urls (url, short, user_uuid)
 			VALUES
 				($1, $2, $3);
-		`, url.Original, url.Short, u.getNullableUserUUID(url))
+		`, url.Original, url.Short, r.getNullableUserUUID(url))
 		if err != nil {
 			return err
 		}
@@ -78,8 +78,8 @@ func (u *URLDatabaseRepo) StoreMultiple(ctx context.Context, urls []*entity.URL)
 	return tx.Commit()
 }
 
-func (u *URLDatabaseRepo) Get(ctx context.Context, hash string) (*entity.URL, error) {
-	row := u.conn.QueryRowContext(
+func (r *URLDatabaseRepo) GetURL(ctx context.Context, hash string) (*entity.URL, error) {
+	row := r.conn.QueryRowContext(
 		ctx,
 		"SELECT uuid, url, short, is_deleted FROM urls WHERE short=$1",
 		hash,
@@ -95,10 +95,10 @@ func (u *URLDatabaseRepo) Get(ctx context.Context, hash string) (*entity.URL, er
 	return &url, nil
 }
 
-func (u *URLDatabaseRepo) GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error) {
+func (r *URLDatabaseRepo) GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error) {
 	urls := make([]*entity.URL, 0)
 
-	rows, err := u.conn.QueryContext(
+	rows, err := r.conn.QueryContext(
 		ctx,
 		"SELECT uuid, url, short FROM urls WHERE user_uuid=$1 AND NOT is_deleted",
 		userUUID,
@@ -132,8 +132,8 @@ func (u *URLDatabaseRepo) GetUserURLS(ctx context.Context, userUUID string) ([]*
 	return urls, nil
 }
 
-func (u *URLDatabaseRepo) getByOriginalURL(ctx context.Context, originalURL string) (*entity.URL, error) {
-	row := u.conn.QueryRowContext(
+func (r *URLDatabaseRepo) getByOriginalURL(ctx context.Context, originalURL string) (*entity.URL, error) {
+	row := r.conn.QueryRowContext(
 		ctx,
 		"SELECT uuid, url, short FROM urls WHERE url=$1 AND NOT is_deleted",
 		originalURL,
@@ -149,7 +149,7 @@ func (u *URLDatabaseRepo) getByOriginalURL(ctx context.Context, originalURL stri
 	return &url, nil
 }
 
-func (u *URLDatabaseRepo) DeleteMultiple(ctx context.Context, userUUID string, urlHashes []string) error {
+func (r *URLDatabaseRepo) DeleteMultipleURLs(ctx context.Context, userUUID string, urlHashes []string) error {
 	queryTemplateBase := 2
 	queryTemplateParams := make([]string, len(urlHashes))
 
@@ -171,7 +171,7 @@ func (u *URLDatabaseRepo) DeleteMultiple(ctx context.Context, userUUID string, u
 		WHERE user_uuid=$1 AND short IN
 	` + " (" + strings.Join(queryTemplateParams, ",") + ");"
 
-	_, err := u.conn.ExecContext(ctx, query, args...)
+	_, err := r.conn.ExecContext(ctx, query, args...)
 
 	return err
 }
