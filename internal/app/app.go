@@ -7,7 +7,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/llravell/go-shortener/internal/rest"
+	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/rs/zerolog"
 )
@@ -28,6 +30,7 @@ type Option func(app *App)
 type App struct {
 	urlUseCase    *usecase.URLUseCase
 	healthUseCase *usecase.HealthUseCase
+	router        chi.Router
 	log           zerolog.Logger
 	addr          string
 	jwtSecret     string
@@ -55,6 +58,7 @@ func New(
 		urlUseCase:    urlUseCase,
 		healthUseCase: healthUseCase,
 		log:           log,
+		router:        chi.NewRouter(),
 	}
 
 	for _, opt := range opts {
@@ -65,19 +69,20 @@ func New(
 }
 
 func (app *App) Run() {
-	router := rest.NewRouter(
-		app.urlUseCase,
-		app.healthUseCase,
-		app.jwtSecret,
-		app.log,
-	)
+	auth := middleware.NewAuth(app.jwtSecret, app.log)
+	healthRoutes := rest.NewHealthRoutes(app.healthUseCase, app.log)
+	urlRoutes := rest.NewURLRoutes(app.urlUseCase, auth, app.log)
+
+	app.router.Use(middleware.LoggerMiddleware(app.log))
+	healthRoutes.Apply(app.router)
+	urlRoutes.Apply(app.router)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	serverNotify := make(chan error, 1)
 	go func() {
-		serverNotify <- startServer(app.addr, router.Mux)
+		serverNotify <- startServer(app.addr, app.router)
 		close(serverNotify)
 	}()
 
