@@ -20,7 +20,7 @@ func NewURLDatabaseRepo(conn *sql.DB) *URLDatabaseRepo {
 	return &URLDatabaseRepo{conn: conn}
 }
 
-func (u *URLDatabaseRepo) getNullableUserUUID(url *entity.URL) sql.NullString {
+func (r *URLDatabaseRepo) getNullableUserUUID(url *entity.URL) sql.NullString {
 	return sql.NullString{
 		String: url.UserUUID,
 		Valid:  url.UserUUID != "",
