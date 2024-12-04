@@ -55,27 +55,33 @@ func (r *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.U
 }
 
 func (r *URLDatabaseRepo) StoreMultipleURLs(ctx context.Context, urls []*entity.URL) error {
-	tx, err := r.conn.BeginTx(ctx, nil)
+	queryTemplateBase := 3
+	queryTemplateParams := make([]string, len(urls))
+
+	for i := range urls {
+		offset := i * queryTemplateBase
+
+		//nolint
+		queryTemplateParams[i] = fmt.Sprintf("($%d,$%d,$%d)", offset+1, offset+2, offset+3)
+	}
+
+	args := make([]any, 0, len(urls))
+	for _, url := range urls {
+		args = append(args, url.Original, url.Short, r.getNullableUserUUID(url))
+	}
+
+	//nolint:gosec
+	query := `
+		INSERT INTO urls (url, short, user_uuid)
+			VALUES
+	` + " " + strings.Join(queryTemplateParams, ",") + ";"
+
+	_, err := r.conn.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
 
-	defer func() {
-		err = tx.Rollback()
-	}()
-
-	for _, url := range urls {
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO urls (url, short, user_uuid)
-			VALUES
-				($1, $2, $3);
-		`, url.Original, url.Short, r.getNullableUserUUID(url))
-		if err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
+	return nil
 }
 
 func (r *URLDatabaseRepo) GetURL(ctx context.Context, hash string) (*entity.URL, error) {
