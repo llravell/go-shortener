@@ -11,6 +11,7 @@ const (
 	_defaultBaseAddr        = "http://localhost:8080"
 	_defaultFileStoragePath = "./urls.backup"
 	_defaultDatabaseDsn     = ""
+	_defaultJWTSecret       = "secret"
 )
 
 type Config struct {
@@ -18,6 +19,7 @@ type Config struct {
 	BaseAddr        string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDsn     string `env:"DATABASE_DSN"`
+	JWTSecret       string `env:"JWT_SECRET"`
 }
 
 func NewConfig() (*Config, error) {
@@ -26,6 +28,7 @@ func NewConfig() (*Config, error) {
 		BaseAddr:        _defaultBaseAddr,
 		FileStoragePath: _defaultFileStoragePath,
 		DatabaseDsn:     _defaultDatabaseDsn,
+		JWTSecret:       _defaultJWTSecret,
 	}
 
 	flag.StringVar(&cfg.Addr, "a", _defaultAddr, "Server address as host:port")

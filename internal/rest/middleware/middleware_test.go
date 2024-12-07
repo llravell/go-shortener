@@ -3,40 +3,12 @@ package middleware_test
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
-
-func testRequest(
-	t *testing.T,
-	ts *httptest.Server,
-	method string,
-	path string,
-	body io.Reader,
-	headers map[string]string,
-) (*http.Response, []byte) {
-	t.Helper()
-
-	req, err := http.NewRequestWithContext(context.TODO(), method, ts.URL+path, body)
-	require.NoError(t, err)
-
-	for k, v := range headers {
-		req.Header.Set(k, v)
-	}
-
-	res, err := ts.Client().Do(req)
-	require.NoError(t, err)
-
-	b, err := io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	return res, b
-}
 
 func echoHandler(t *testing.T) http.HandlerFunc {
 	t.Helper()

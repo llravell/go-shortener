@@ -1,4 +1,4 @@
-package httpv1_test
+package rest_test
 
 import (
 	"errors"
@@ -8,8 +8,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
-	"github.com/llravell/go-shortener/internal/controller/httpv1"
+	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/llravell/go-shortener/internal/mocks"
+	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,9 @@ func TestHealthRoutes(t *testing.T) {
 	healthUseCase := usecase.NewHealthUseCase(repo)
 	router := chi.NewRouter()
 	logger := zerolog.Nop()
-	httpv1.NewHealthRoutes(router, healthUseCase, logger)
+	healthRoutes := rest.NewHealthRoutes(healthUseCase, logger)
+
+	healthRoutes.Apply(router)
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()
@@ -57,13 +60,13 @@ func TestHealthRoutes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.prepareMocks()
 
-			res, body := sendTestRequest(t, ts, tc.method, tc.path, tc.body)
+			res, body := testutils.SendTestRequest(t, ts, ts.Client(), tc.method, tc.path, tc.body, map[string]string{})
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedCode, res.StatusCode)
 
 			if tc.expectedBody != "" {
-				assert.Equal(t, tc.expectedBody, body)
+				assert.Equal(t, tc.expectedBody, string(body))
 			}
 		})
 	}

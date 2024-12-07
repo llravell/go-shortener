@@ -6,16 +6,22 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
-type URLRepo interface {
-	Store(ctx context.Context, url *entity.URL) (*entity.URL, error)
-	StoreMultiple(ctx context.Context, urls []*entity.URL) error
-	Get(ctx context.Context, hash string) (*entity.URL, error)
-}
+//go:generate ../../bin/mockgen -destination=../mocks/mock_usecase.go -package=mocks . URLRepo,HealthRepo,HashGenerator
 
-type HealthRepo interface {
-	PingContext(ctx context.Context) error
-}
+type (
+	URLRepo interface {
+		Store(ctx context.Context, url *entity.URL) (*entity.URL, error)
+		StoreMultipleURLs(ctx context.Context, urls []*entity.URL) error
+		GetURL(ctx context.Context, hash string) (*entity.URL, error)
+		GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error)
+		DeleteMultipleURLs(ctx context.Context, userUUID string, urlHashes []string) error
+	}
 
-type HashGenerator interface {
-	Generate() (string, error)
-}
+	HealthRepo interface {
+		PingContext(ctx context.Context) error
+	}
+
+	HashGenerator interface {
+		Generate() (string, error)
+	}
+)

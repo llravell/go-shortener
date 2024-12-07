@@ -8,7 +8,8 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/llravell/go-shortener/internal/controller/httpv1/middleware"
+	testutils "github.com/llravell/go-shortener/internal"
+	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +56,7 @@ func TestDecompressMiddleware(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			res, body := testRequest(t, ts, http.MethodPost, "/", tc.body, tc.headers)
+			res, body := testutils.SendTestRequest(t, ts, ts.Client(), http.MethodPost, "/", tc.body, tc.headers)
 			defer res.Body.Close()
 
 			assert.Equal(t, tc.expectedStatus, res.StatusCode)
