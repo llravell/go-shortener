@@ -19,7 +19,7 @@ var UserUUIDContextKey contextKey = "userUUID"
 
 type Auth struct {
 	secret []byte
-	log    zerolog.Logger
+	log    *zerolog.Logger
 }
 
 func (auth *Auth) parseUserUUIDFromRequest(r *http.Request) string {
@@ -97,7 +97,7 @@ func (auth *Auth) CheckJWTMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NewAuth(secretKey string, log zerolog.Logger) *Auth {
+func NewAuth(secretKey string, log *zerolog.Logger) *Auth {
 	auth := &Auth{
 		secret: []byte(secretKey),
 		log:    log,

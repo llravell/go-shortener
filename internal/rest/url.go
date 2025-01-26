@@ -26,7 +26,7 @@ type URLUseCase interface {
 type URLRoutes struct {
 	urlUC URLUseCase
 	auth  *middleware.Auth
-	log   zerolog.Logger
+	log   *zerolog.Logger
 }
 
 type saveURLRequest struct {
@@ -55,7 +55,7 @@ type UserURLItem struct {
 func NewURLRoutes(
 	urlUC URLUseCase,
 	auth *middleware.Auth,
-	log zerolog.Logger,
+	log *zerolog.Logger,
 ) *URLRoutes {
 	return &URLRoutes{
 		urlUC: urlUC,

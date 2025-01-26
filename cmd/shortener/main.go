@@ -125,8 +125,9 @@ func main() {
 	app.New(
 		urlUseCase,
 		healthUseCase,
-		log,
+		&log,
 		app.Addr(cfg.Addr),
 		app.JWTSecret(cfg.JWTSecret),
+		app.IsDebug(cfg.APP_ENV == "development"),
 	).Run()
 }

@@ -18,7 +18,10 @@ var log zerolog.Logger
 
 var logFile *os.File
 
-const logFilePermissions = 0o664
+const (
+	logFilePermissions = 0o664
+	logSample          = 10
+)
 
 func Get() zerolog.Logger {
 	once.Do(func() {
@@ -35,7 +38,8 @@ func Get() zerolog.Logger {
 			TimeFormat: time.RFC3339,
 		}
 
-		if os.Getenv("APP_ENV") != "development" {
+		appEnv := os.Getenv("APP_ENV")
+		if appEnv != "development" {
 			logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFilePermissions)
 			if err != nil {
 				panic(err)
@@ -56,7 +60,9 @@ func Get() zerolog.Logger {
 			With().
 			Timestamp().
 			Str("go_version", goVersion).
-			Logger()
+			Str("env", appEnv).
+			Logger().
+			Sample(&zerolog.BasicSampler{N: logSample})
 	})
 
 	return log

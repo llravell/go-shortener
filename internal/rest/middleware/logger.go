@@ -9,7 +9,7 @@ import (
 )
 
 type logFormatter struct {
-	logger zerolog.Logger
+	logger *zerolog.Logger
 }
 
 func (l *logFormatter) NewLogEntry(r *http.Request) middleware.LogEntry {
@@ -39,7 +39,7 @@ func (l *logEntry) Panic(v interface{}, _ []byte) {
 	middleware.PrintPrettyStack(v)
 }
 
-func LoggerMiddleware(l zerolog.Logger) func(next http.Handler) http.Handler {
+func LoggerMiddleware(l *zerolog.Logger) func(next http.Handler) http.Handler {
 	lf := &logFormatter{logger: l}
 
 	return middleware.RequestLogger(lf)

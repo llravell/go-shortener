@@ -9,7 +9,7 @@ import (
 
 func CompressMiddleware(types ...string) func(next http.Handler) http.Handler {
 	return middleware.Compress(
-		flate.BestSpeed,
+		flate.DefaultCompression,
 		types...,
 	)
 }

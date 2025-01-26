@@ -14,10 +14,10 @@ type HealthUseCase interface {
 
 type HealthRoutes struct {
 	healthUC HealthUseCase
-	log      zerolog.Logger
+	log      *zerolog.Logger
 }
 
-func NewHealthRoutes(healthUC HealthUseCase, log zerolog.Logger) *HealthRoutes {
+func NewHealthRoutes(healthUC HealthUseCase, log *zerolog.Logger) *HealthRoutes {
 	return &HealthRoutes{
 		healthUC: healthUC,
 		log:      log,

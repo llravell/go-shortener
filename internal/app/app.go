@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
@@ -31,9 +32,10 @@ type App struct {
 	urlUseCase    *usecase.URLUseCase
 	healthUseCase *usecase.HealthUseCase
 	router        chi.Router
-	log           zerolog.Logger
+	log           *zerolog.Logger
 	addr          string
 	jwtSecret     string
+	isDebug       bool
 }
 
 func Addr(addr string) Option {
@@ -48,10 +50,16 @@ func JWTSecret(secret string) Option {
 	}
 }
 
+func IsDebug(isDebug bool) Option {
+	return func(app *App) {
+		app.isDebug = isDebug
+	}
+}
+
 func New(
 	urlUseCase *usecase.URLUseCase,
 	healthUseCase *usecase.HealthUseCase,
-	log zerolog.Logger,
+	log *zerolog.Logger,
 	opts ...Option,
 ) *App {
 	app := &App{
@@ -76,6 +84,10 @@ func (app *App) Run() {
 	app.router.Use(middleware.LoggerMiddleware(app.log))
 	healthRoutes.Apply(app.router)
 	urlRoutes.Apply(app.router)
+
+	if app.isDebug {
+		app.router.Mount("/debug", chiMiddleware.Profiler())
+	}
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
