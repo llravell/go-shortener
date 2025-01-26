@@ -12,6 +12,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/mocks"
@@ -19,9 +23,6 @@ import (
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var errNotFound = errors.New("not found")

@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/rs/zerolog"
+
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/repo"
-	"github.com/rs/zerolog"
 )
 
 var ErrURLDuplicate = errors.New("duplicate url")

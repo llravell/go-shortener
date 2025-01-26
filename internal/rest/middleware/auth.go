@@ -5,8 +5,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/rs/zerolog"
+
+	"github.com/llravell/go-shortener/internal/entity"
 )
 
 const (

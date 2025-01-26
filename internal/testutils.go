@@ -9,9 +9,10 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
-	"github.com/stretchr/testify/require"
 )
 
 const (

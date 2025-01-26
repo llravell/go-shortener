@@ -8,10 +8,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
+
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
-	"github.com/rs/zerolog"
 )
 
 type URLUseCase interface {

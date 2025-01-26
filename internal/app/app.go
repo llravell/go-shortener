@@ -9,10 +9,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/rs/zerolog"
+
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
-	"github.com/rs/zerolog"
 )
 
 func startServer(addr string, handler http.Handler) error {

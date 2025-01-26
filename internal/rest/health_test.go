@@ -8,12 +8,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+
 	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/llravell/go-shortener/internal/mocks"
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/usecase"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/assert"
 )
 
 var errNoConnection = errors.New("no connection")

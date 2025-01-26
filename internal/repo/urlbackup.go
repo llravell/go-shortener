@@ -6,8 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/spf13/afero"
+
+	"github.com/llravell/go-shortener/internal/entity"
 )
 
 const backupFilePermissions = 0o666
