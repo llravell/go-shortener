@@ -66,8 +66,8 @@ func prepareTestServer(
 	urlUseCase := usecase.NewURLUseCase(repo, wp, gen, "http://localhost:8080", logger)
 
 	router := chi.NewRouter()
-	auth := middleware.NewAuth("secret", logger)
-	urlRoutes := rest.NewURLRoutes(urlUseCase, auth, logger)
+	auth := middleware.NewAuth("secret", &logger)
+	urlRoutes := rest.NewURLRoutes(urlUseCase, auth, &logger)
 
 	urlRoutes.Apply(router)
 

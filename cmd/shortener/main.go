@@ -128,6 +128,6 @@ func main() {
 		&log,
 		app.Addr(cfg.Addr),
 		app.JWTSecret(cfg.JWTSecret),
-		app.IsDebug(cfg.APP_ENV == "development"),
+		app.IsDebug(cfg.AppEnv == "development"),
 	).Run()
 }

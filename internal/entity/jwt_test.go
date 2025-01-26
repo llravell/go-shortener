@@ -8,6 +8,7 @@ var secret = []byte("secret")
 
 func BenchmarkBuildJWTString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
+		//nolint:errcheck
 		BuildJWTString(uuid, secret)
 	}
 }
@@ -21,6 +22,7 @@ func BenchmarkParseJWTString(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
+		//nolint:errcheck
 		ParseJWTString(jwt, secret)
 	}
 }

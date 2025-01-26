@@ -32,7 +32,8 @@ func findAuthTokenCookie(t *testing.T, cookies []*http.Cookie) *http.Cookie {
 
 func TestProvideJWTMiddleware(t *testing.T) {
 	router := chi.NewRouter()
-	auth := middleware.NewAuth(testutils.JWTSecretKey, zerolog.Nop())
+	logger := zerolog.Nop()
+	auth := middleware.NewAuth(testutils.JWTSecretKey, &logger)
 
 	router.Use(auth.ProvideJWTMiddleware)
 	router.Post("/", echoHandler(t))
@@ -83,7 +84,8 @@ func TestProvideJWTMiddleware(t *testing.T) {
 
 func TestCheckJWTMiddleware(t *testing.T) {
 	router := chi.NewRouter()
-	auth := middleware.NewAuth(testutils.JWTSecretKey, zerolog.Nop())
+	logger := zerolog.Nop()
+	auth := middleware.NewAuth(testutils.JWTSecretKey, &logger)
 
 	router.Use(auth.CheckJWTMiddleware)
 	router.Post("/", echoHandler(t))

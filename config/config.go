@@ -20,7 +20,7 @@ type Config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDsn     string `env:"DATABASE_DSN"`
 	JWTSecret       string `env:"JWT_SECRET"`
-	APP_ENV         string `env:"APP_ENV"`
+	AppEnv          string `env:"APP_ENV"`
 }
 
 func NewConfig() (*Config, error) {

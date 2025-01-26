@@ -45,7 +45,7 @@ func TestLoggerMiddleware(t *testing.T) {
 	out := &bytes.Buffer{}
 	logger := zerolog.New(out)
 
-	router.Use(middleware.LoggerMiddleware(logger))
+	router.Use(middleware.LoggerMiddleware(&logger))
 	router.Post("/", echoHandler(t))
 
 	ts := httptest.NewServer(router)

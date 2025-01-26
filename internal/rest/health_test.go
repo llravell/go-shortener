@@ -24,7 +24,7 @@ func TestHealthRoutes(t *testing.T) {
 	healthUseCase := usecase.NewHealthUseCase(repo)
 	router := chi.NewRouter()
 	logger := zerolog.Nop()
-	healthRoutes := rest.NewHealthRoutes(healthUseCase, logger)
+	healthRoutes := rest.NewHealthRoutes(healthUseCase, &logger)
 
 	healthRoutes.Apply(router)
 
