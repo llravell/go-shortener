@@ -10,12 +10,12 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
-const (
-	TokenCookieName = "user-token"
-)
+// TokenCookieName имя поля куки для авторизации.
+const TokenCookieName = "user-token"
 
 type contextKey string
 
+// UserUUIDContextKey имя поля контекста запроса с uuid пользователя.
 var UserUUIDContextKey contextKey = "userUUID"
 
 // Auth предоставляет мидлвары для работы с авторизацией.

@@ -12,6 +12,7 @@ const (
 	_defaultWorksChanSize = 64
 )
 
+// ErrHasBeenAlreadyClosed ошибка повторного закрытия WorkerPool.
 var ErrHasBeenAlreadyClosed = errors.New("worker pool has been already closed")
 
 // Work определяет интерфейс выполняемых задач.

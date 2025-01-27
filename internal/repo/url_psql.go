@@ -10,12 +10,15 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
+// URLDatabaseRepo репозиторий для хранения урлов в базе данных.
 type URLDatabaseRepo struct {
 	conn *sql.DB
 }
 
+// ErrOriginalURLConflict ошибка при создании дубля.
 var ErrOriginalURLConflict = errors.New("url already exists")
 
+// NewURLDatabaseRepo создает репозиторий.
 func NewURLDatabaseRepo(conn *sql.DB) *URLDatabaseRepo {
 	return &URLDatabaseRepo{conn: conn}
 }
@@ -27,6 +30,7 @@ func (r *URLDatabaseRepo) getNullableUserUUID(url *entity.URL) sql.NullString {
 	}
 }
 
+// Store сохраняет урл.
 func (r *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.URL, error) {
 	storedURL, err := r.getByOriginalURL(ctx, url.Original)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -54,6 +58,7 @@ func (r *URLDatabaseRepo) Store(ctx context.Context, url *entity.URL) (*entity.U
 	return &returnedURL, nil
 }
 
+// StoreMultipleURLs сохраняет несколько урлов.
 func (r *URLDatabaseRepo) StoreMultipleURLs(ctx context.Context, urls []*entity.URL) error {
 	queryTemplateBase := 3
 	queryTemplateParams := make([]string, len(urls))
@@ -84,6 +89,7 @@ func (r *URLDatabaseRepo) StoreMultipleURLs(ctx context.Context, urls []*entity.
 	return nil
 }
 
+// GetURL находит урл по хэшу.
 func (r *URLDatabaseRepo) GetURL(ctx context.Context, hash string) (*entity.URL, error) {
 	row := r.conn.QueryRowContext(
 		ctx,
@@ -101,6 +107,7 @@ func (r *URLDatabaseRepo) GetURL(ctx context.Context, hash string) (*entity.URL,
 	return &url, nil
 }
 
+// GetUserURLS находит все урлы пользователя.
 func (r *URLDatabaseRepo) GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error) {
 	urls := make([]*entity.URL, 0)
 
@@ -155,6 +162,7 @@ func (r *URLDatabaseRepo) getByOriginalURL(ctx context.Context, originalURL stri
 	return &url, nil
 }
 
+// DeleteMultipleURLs удаляет несколько урлов.
 func (r *URLDatabaseRepo) DeleteMultipleURLs(ctx context.Context, userUUID string, urlHashes []string) error {
 	queryTemplateBase := 2
 	queryTemplateParams := make([]string, len(urlHashes))

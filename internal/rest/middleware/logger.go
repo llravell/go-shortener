@@ -12,6 +12,7 @@ type logFormatter struct {
 	logger *zerolog.Logger
 }
 
+// NewLogEntry создает объект логирования для встроенной мидлвары chi.
 func (l *logFormatter) NewLogEntry(r *http.Request) middleware.LogEntry {
 	return &logEntry{
 		logFormatter: l,
@@ -24,6 +25,7 @@ type logEntry struct {
 	request *http.Request
 }
 
+// Write пишет лог запроса.
 func (l *logEntry) Write(status, bytes int, _ http.Header, elapsed time.Duration, _ interface{}) {
 	l.logger.Info().
 		Str("remote_addr", l.request.RemoteAddr).
@@ -35,10 +37,12 @@ func (l *logEntry) Write(status, bytes int, _ http.Header, elapsed time.Duration
 		Msg("incoming request")
 }
 
+// Panic обрабатывает панику.
 func (l *logEntry) Panic(v interface{}, _ []byte) {
 	middleware.PrintPrettyStack(v)
 }
 
+// LoggerMiddleware мидлвара логирования данных запроса.
 func LoggerMiddleware(l *zerolog.Logger) func(next http.Handler) http.Handler {
 	lf := &logFormatter{logger: l}
 

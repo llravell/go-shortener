@@ -22,7 +22,12 @@ func ExampleURLRoutes_common_case() {
 	buf, _ := io.ReadAll(resp.Body)
 	shortURL := string(buf)
 
-	http.Get("http://localhost:8080/" + shortURL)
+	redirResp, err := http.Get("http://localhost:8080/" + shortURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	redirResp.Body.Close()
 }
 
 func ExampleURLRoutes_json_save() {
@@ -42,7 +47,12 @@ func ExampleURLRoutes_json_save() {
 	response := make(map[string]string)
 	json.NewDecoder(resp.Body).Decode(&response)
 
-	http.Get(response["result"])
+	redirResp, err := http.Get(response["result"])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	redirResp.Body.Close()
 }
 
 func ExampleURLRoutes_batch() {
@@ -76,6 +86,12 @@ func ExampleURLRoutes_batch() {
 	json.NewDecoder(resp.Body).Decode(&responseItems)
 
 	for _, item := range responseItems {
-		http.Get(item.ShortURL)
+		redirResp, err := http.Get(item.ShortURL)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		redirResp.Body.Close()
 	}
 }

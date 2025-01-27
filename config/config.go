@@ -14,6 +14,7 @@ const (
 	_defaultJWTSecret       = "secret"
 )
 
+// Config конфигурация приложения.
 type Config struct {
 	Addr            string `env:"SERVER_ADDRESS"`
 	BaseAddr        string `env:"BASE_URL"`
@@ -23,6 +24,7 @@ type Config struct {
 	AppEnv          string `env:"APP_ENV"`
 }
 
+// NewConfig создает новый конфиг, заполняет его значениями из переменных окружения и флагов.
 func NewConfig() (*Config, error) {
 	cfg := &Config{
 		Addr:            _defaultAddr,

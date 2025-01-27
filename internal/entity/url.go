@@ -9,6 +9,7 @@ type URL struct {
 	Deleted  bool   `json:"is_deleted"`
 }
 
+// URLDeleteItem dto удаление урлов.
 type URLDeleteItem struct {
 	UserUUID string
 	Hashes   []string

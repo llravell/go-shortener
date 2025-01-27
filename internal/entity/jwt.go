@@ -9,6 +9,7 @@ import (
 // JWTExpire определяет срок жизни токена.
 const JWTExpire = time.Hour * 3
 
+// JWTClaims хранит jwt утверждения, в том числе uuid пользователя.
 type JWTClaims struct {
 	jwt.RegisteredClaims
 	UserUUID string

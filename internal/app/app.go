@@ -27,8 +27,10 @@ func startServer(addr string, handler http.Handler) error {
 	return server.ListenAndServe()
 }
 
+// Option дополнительная опция приложения.
 type Option func(app *App)
 
+// App приложение.
 type App struct {
 	urlUseCase    *usecase.URLUseCase
 	healthUseCase *usecase.HealthUseCase
@@ -39,24 +41,28 @@ type App struct {
 	isDebug       bool
 }
 
+// Addr устанавливает адрес, на котором будет запускаться http сервер.
 func Addr(addr string) Option {
 	return func(app *App) {
 		app.addr = addr
 	}
 }
 
+// JWTSecret устанавливает строку, которая будет использоваться для генерации JWT.
 func JWTSecret(secret string) Option {
 	return func(app *App) {
 		app.jwtSecret = secret
 	}
 }
 
+// IsDebug устанавливает режим, в котором запущенно приложение.
 func IsDebug(isDebug bool) Option {
 	return func(app *App) {
 		app.isDebug = isDebug
 	}
 }
 
+// New создает инстанс приложения.
 func New(
 	urlUseCase *usecase.URLUseCase,
 	healthUseCase *usecase.HealthUseCase,
@@ -77,6 +83,7 @@ func New(
 	return app
 }
 
+// Run инициализирует роуты и запускает http сервер.
 func (app *App) Run() {
 	auth := middleware.NewAuth(app.jwtSecret, app.log)
 	healthRoutes := rest.NewHealthRoutes(app.healthUseCase, app.log)

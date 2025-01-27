@@ -12,5 +12,7 @@ func ExampleHealthRoutes() {
 		log.Fatal(err)
 	}
 
+	defer response.Body.Close()
+
 	fmt.Println(response.StatusCode)
 }

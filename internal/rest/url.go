@@ -15,6 +15,7 @@ import (
 	"github.com/llravell/go-shortener/internal/usecase"
 )
 
+// URLUseCase юзкейс базовых операций с урлами.
 type URLUseCase interface {
 	SaveURL(ctx context.Context, url string, userUUID string) (*entity.URL, error)
 	SaveURLMultiple(ctx context.Context, urls []string, userUUID string) ([]*entity.URL, error)
@@ -24,6 +25,7 @@ type URLUseCase interface {
 	QueueDelete(item *entity.URLDeleteItem) error
 }
 
+// URLRoutes роуты базовых операций с урлами.
 type URLRoutes struct {
 	urlUC URLUseCase
 	auth  *middleware.Auth
@@ -38,21 +40,25 @@ type saveURLResponse struct {
 	Result string `json:"result"`
 }
 
+// URLBatchRequestItem dto запроса для массового создания урлов.
 type URLBatchRequestItem struct {
 	CorrelationID string `json:"correlation_id"`
 	OriginalURL   string `json:"original_url"`
 }
 
+// URLBatchResponseItem dto ответа для массового создания урлов.
 type URLBatchResponseItem struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
 
+// UserURLItem dto урла пользователя.
 type UserURLItem struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
 
+// NewURLRoutes создает роуты.
 func NewURLRoutes(
 	urlUC URLUseCase,
 	auth *middleware.Auth,
@@ -295,6 +301,7 @@ func (ur *URLRoutes) deleteUserURLS(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// Apply добавляет роуты к роутеру.
 func (ur *URLRoutes) Apply(r chi.Router) {
 	r.Get("/{id}", ur.resolveURL)
 	r.With(middleware.DecompressMiddleware()).
