@@ -17,7 +17,7 @@ linters:
 
 issues:
   exclude-files:
-    - *_example_test.go
+    - ".*_example_test\\.go"
 
 linters-settings:
   depguard:
