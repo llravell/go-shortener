@@ -1,3 +1,4 @@
+// Пакет workerpool представляет реализацию одноименного паттерна.
 package workerpool
 
 import (
@@ -13,10 +14,12 @@ const (
 
 var ErrHasBeenAlreadyClosed = errors.New("worker pool has been already closed")
 
+// Work определяет интерфейс выполняемых задач.
 type Work interface {
 	Do(ctx context.Context)
 }
 
+// WorkerPool структура, предоставляющая интерфейс для распараллеливания задач.
 type WorkerPool[W Work] struct {
 	workersAmount int
 	worksChan     chan W
@@ -26,6 +29,7 @@ type WorkerPool[W Work] struct {
 	wg            sync.WaitGroup
 }
 
+// New создает инстанс WorkerPool'а, дает возможность задать количество воркеров.
 func New[W Work](workersAmount int) *WorkerPool[W] {
 	return &WorkerPool[W]{
 		workersAmount: workersAmount,
@@ -34,6 +38,7 @@ func New[W Work](workersAmount int) *WorkerPool[W] {
 	}
 }
 
+// QueueWork добавляет задачу в очередь на обработку.
 func (wp *WorkerPool[W]) QueueWork(work W) error {
 	if wp.closed.Load() {
 		return ErrHasBeenAlreadyClosed
@@ -61,6 +66,7 @@ func (wp *WorkerPool[W]) worker(ctx context.Context) {
 	}
 }
 
+// ProcessQueue запускает цикл выполнения задач из очереди.
 func (wp *WorkerPool[W]) ProcessQueue() {
 	if wp.closed.Load() {
 		return
@@ -80,6 +86,7 @@ func (wp *WorkerPool[W]) ProcessQueue() {
 	})
 }
 
+// Close оповещает воркеров об окончании работ, закрывает каналы.
 func (wp *WorkerPool[W]) Close() error {
 	hasBeenCanceled := wp.closed.Swap(true)
 
@@ -91,6 +98,7 @@ func (wp *WorkerPool[W]) Close() error {
 	return nil
 }
 
+// Wait дожидается окончания работ всех воркеров.
 func (wp *WorkerPool[W]) Wait() {
 	wp.wg.Wait()
 }

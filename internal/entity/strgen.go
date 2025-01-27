@@ -6,6 +6,7 @@ import (
 	"errors"
 )
 
+// RandomStringGenerator генерирует случайные строки в формате base64.
 type RandomStringGenerator struct {
 	hashLen int
 }

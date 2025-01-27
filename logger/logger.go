@@ -1,3 +1,4 @@
+// Пакет logger конфигурирует логер и возвращает единственный инстанс
 package logger
 
 import (
@@ -23,6 +24,7 @@ const (
 	logSample          = 10
 )
 
+// Get возвращает сгенерированный логгер. Конфигурация происходит единожды.
 func Get() zerolog.Logger {
 	once.Do(func() {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
@@ -68,6 +70,7 @@ func Get() zerolog.Logger {
 	return log
 }
 
+// Close закрывает файл, если он использовался для записи логов.
 func Close() {
 	if logFile != nil {
 		logFile.Close()

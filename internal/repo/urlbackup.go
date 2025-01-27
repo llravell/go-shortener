@@ -13,10 +13,12 @@ import (
 
 const backupFilePermissions = 0o666
 
+// URLBackup предоставляет интерфейс для сохранения таблицы урлов на диск.
 type URLBackup struct {
 	file afero.File
 }
 
+// NewURLBackup конфигурирует бэкап, открывает файл для записи.
 func NewURLBackup(filename string) (*URLBackup, error) {
 	fs := afero.NewOsFs()
 
@@ -30,6 +32,7 @@ func NewURLBackup(filename string) (*URLBackup, error) {
 	}, nil
 }
 
+// Restore восстанавливает таблицу с диска, возвращает список сохраненных урлов.
 func (u *URLBackup) Restore() ([]*entity.URL, error) {
 	urls := make([]*entity.URL, 0)
 	scanner := bufio.NewScanner(u.file)
@@ -56,6 +59,7 @@ func (u *URLBackup) Restore() ([]*entity.URL, error) {
 	return urls, nil
 }
 
+// Store сохраняет переданные урлы на диск.
 func (u *URLBackup) Store(urls []*entity.URL) error {
 	_, err := u.file.Seek(0, io.SeekStart)
 	if err != nil {
@@ -91,6 +95,7 @@ func (u *URLBackup) Store(urls []*entity.URL) error {
 	return nil
 }
 
+// Close закрывает файл бэкапа.
 func (u *URLBackup) Close() error {
 	return u.file.Close()
 }

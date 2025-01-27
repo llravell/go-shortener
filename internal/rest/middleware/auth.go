@@ -18,6 +18,7 @@ type contextKey string
 
 var UserUUIDContextKey contextKey = "userUUID"
 
+// Auth предоставляет мидлвары для работы с авторизацией.
 type Auth struct {
 	secret []byte
 	log    *zerolog.Logger
@@ -53,6 +54,8 @@ func (auth *Auth) provideUserUUIDToRequestContext(r *http.Request, userUUID stri
 	return r.WithContext(ctx)
 }
 
+// ProvideJWTMiddleware генерирует uuid для новых пользователей, добавляет их в куки.
+// Дополнительно пробрасывает uuid пользователя в контекст запроса.
 func (auth *Auth) ProvideJWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userUUID := auth.parseUserUUIDFromRequest(r)
@@ -84,6 +87,8 @@ func (auth *Auth) ProvideJWTMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// CheckJWTMiddleware проверяет куку авторизации в каждом запросе.
+// Возвращает 401 статус, если кука отсутствует или невалидна.
 func (auth *Auth) CheckJWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userUUID := auth.parseUserUUIDFromRequest(r)
@@ -98,6 +103,7 @@ func (auth *Auth) CheckJWTMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// NewAuth конфигурирует мидлвары авторизации.
 func NewAuth(secretKey string, log *zerolog.Logger) *Auth {
 	auth := &Auth{
 		secret: []byte(secretKey),
