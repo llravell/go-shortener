@@ -15,6 +15,10 @@ linters:
     - testifylint
     - gci
 
+issues:
+  exclude-files:
+    - *_example_test.go
+
 linters-settings:
   depguard:
     rules:
