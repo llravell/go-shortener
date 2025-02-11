@@ -9,11 +9,13 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
-	"github.com/stretchr/testify/require"
 )
 
+// Заглушки для тестирования.
 const (
 	JWTSecretKey = "secret"
 	UserUUID     = "test-uuid"
@@ -31,6 +33,7 @@ func buildAuthTokenCookie(t *testing.T) *http.Cookie {
 	}
 }
 
+// AuthorizedClient создает http клиента с кукой авторизации.
 func AuthorizedClient(t *testing.T, ts *httptest.Server) *http.Client {
 	t.Helper()
 
@@ -47,6 +50,7 @@ func AuthorizedClient(t *testing.T, ts *httptest.Server) *http.Client {
 	return &client
 }
 
+// SendTestRequest отправляет запрос на тестовый сервер.
 func SendTestRequest(
 	t *testing.T,
 	ts *httptest.Server,

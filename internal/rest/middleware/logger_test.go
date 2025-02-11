@@ -9,11 +9,12 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	testutils "github.com/llravell/go-shortener/internal"
-	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	testutils "github.com/llravell/go-shortener/internal"
+	"github.com/llravell/go-shortener/internal/rest/middleware"
 )
 
 type Log struct {
@@ -45,7 +46,7 @@ func TestLoggerMiddleware(t *testing.T) {
 	out := &bytes.Buffer{}
 	logger := zerolog.New(out)
 
-	router.Use(middleware.LoggerMiddleware(logger))
+	router.Use(middleware.LoggerMiddleware(&logger))
 	router.Post("/", echoHandler(t))
 
 	ts := httptest.NewServer(router)

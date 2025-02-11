@@ -1,3 +1,4 @@
+// Пакет logger конфигурирует логер и возвращает единственный инстанс
 package logger
 
 import (
@@ -18,8 +19,12 @@ var log zerolog.Logger
 
 var logFile *os.File
 
-const logFilePermissions = 0o664
+const (
+	logFilePermissions = 0o664
+	logSample          = 10
+)
 
+// Get возвращает сгенерированный логгер. Конфигурация происходит единожды.
 func Get() zerolog.Logger {
 	once.Do(func() {
 		zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
@@ -35,7 +40,8 @@ func Get() zerolog.Logger {
 			TimeFormat: time.RFC3339,
 		}
 
-		if os.Getenv("APP_ENV") != "development" {
+		appEnv := os.Getenv("APP_ENV")
+		if appEnv != "development" {
 			logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFilePermissions)
 			if err != nil {
 				panic(err)
@@ -56,12 +62,15 @@ func Get() zerolog.Logger {
 			With().
 			Timestamp().
 			Str("go_version", goVersion).
-			Logger()
+			Str("env", appEnv).
+			Logger().
+			Sample(&zerolog.BasicSampler{N: logSample})
 	})
 
 	return log
 }
 
+// Close закрывает файл, если он использовался для записи логов.
 func Close() {
 	if logFile != nil {
 		logFile.Close()

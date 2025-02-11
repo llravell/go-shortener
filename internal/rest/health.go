@@ -8,16 +8,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// HealthUseCase юзкейс пинга приложения.
 type HealthUseCase interface {
 	PingContext(ctx context.Context) error
 }
 
+// HealthRoutes роуты для проверки приложения.
 type HealthRoutes struct {
 	healthUC HealthUseCase
-	log      zerolog.Logger
+	log      *zerolog.Logger
 }
 
-func NewHealthRoutes(healthUC HealthUseCase, log zerolog.Logger) *HealthRoutes {
+// NewHealthRoutes создает роуты.
+func NewHealthRoutes(healthUC HealthUseCase, log *zerolog.Logger) *HealthRoutes {
 	return &HealthRoutes{
 		healthUC: healthUC,
 		log:      log,
@@ -35,6 +38,7 @@ func (hr *HealthRoutes) ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// Apply добавляет роуты к роутеру.
 func (hr *HealthRoutes) Apply(r chi.Router) {
 	r.Get("/ping", hr.ping)
 }

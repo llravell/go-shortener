@@ -7,11 +7,12 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	testutils "github.com/llravell/go-shortener/internal"
-	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	testutils "github.com/llravell/go-shortener/internal"
+	"github.com/llravell/go-shortener/internal/rest/middleware"
 )
 
 func findAuthTokenCookie(t *testing.T, cookies []*http.Cookie) *http.Cookie {
@@ -32,7 +33,8 @@ func findAuthTokenCookie(t *testing.T, cookies []*http.Cookie) *http.Cookie {
 
 func TestProvideJWTMiddleware(t *testing.T) {
 	router := chi.NewRouter()
-	auth := middleware.NewAuth(testutils.JWTSecretKey, zerolog.Nop())
+	logger := zerolog.Nop()
+	auth := middleware.NewAuth(testutils.JWTSecretKey, &logger)
 
 	router.Use(auth.ProvideJWTMiddleware)
 	router.Post("/", echoHandler(t))
@@ -83,7 +85,8 @@ func TestProvideJWTMiddleware(t *testing.T) {
 
 func TestCheckJWTMiddleware(t *testing.T) {
 	router := chi.NewRouter()
-	auth := middleware.NewAuth(testutils.JWTSecretKey, zerolog.Nop())
+	logger := zerolog.Nop()
+	auth := middleware.NewAuth(testutils.JWTSecretKey, &logger)
 
 	router.Use(auth.CheckJWTMiddleware)
 	router.Post("/", echoHandler(t))

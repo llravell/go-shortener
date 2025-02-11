@@ -5,21 +5,23 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/rs/zerolog"
+
+	"github.com/llravell/go-shortener/internal/entity"
 )
 
-const (
-	TokenCookieName = "user-token"
-)
+// TokenCookieName имя поля куки для авторизации.
+const TokenCookieName = "user-token"
 
 type contextKey string
 
+// UserUUIDContextKey имя поля контекста запроса с uuid пользователя.
 var UserUUIDContextKey contextKey = "userUUID"
 
+// Auth предоставляет мидлвары для работы с авторизацией.
 type Auth struct {
 	secret []byte
-	log    zerolog.Logger
+	log    *zerolog.Logger
 }
 
 func (auth *Auth) parseUserUUIDFromRequest(r *http.Request) string {
@@ -52,6 +54,8 @@ func (auth *Auth) provideUserUUIDToRequestContext(r *http.Request, userUUID stri
 	return r.WithContext(ctx)
 }
 
+// ProvideJWTMiddleware генерирует uuid для новых пользователей, добавляет их в куки.
+// Дополнительно пробрасывает uuid пользователя в контекст запроса.
 func (auth *Auth) ProvideJWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userUUID := auth.parseUserUUIDFromRequest(r)
@@ -83,6 +87,8 @@ func (auth *Auth) ProvideJWTMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// CheckJWTMiddleware проверяет куку авторизации в каждом запросе.
+// Возвращает 401 статус, если кука отсутствует или невалидна.
 func (auth *Auth) CheckJWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userUUID := auth.parseUserUUIDFromRequest(r)
@@ -97,7 +103,8 @@ func (auth *Auth) CheckJWTMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func NewAuth(secretKey string, log zerolog.Logger) *Auth {
+// NewAuth конфигурирует мидлвары авторизации.
+func NewAuth(secretKey string, log *zerolog.Logger) *Auth {
 	auth := &Auth{
 		secret: []byte(secretKey),
 		log:    log,

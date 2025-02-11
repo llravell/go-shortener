@@ -8,9 +8,10 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+
 	testutils "github.com/llravell/go-shortener/internal"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDecompressMiddleware(t *testing.T) {

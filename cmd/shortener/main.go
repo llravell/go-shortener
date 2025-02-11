@@ -7,6 +7,9 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
+	"github.com/rs/zerolog"
+
 	"github.com/llravell/go-shortener/config"
 	"github.com/llravell/go-shortener/internal/app"
 	"github.com/llravell/go-shortener/internal/entity"
@@ -14,8 +17,6 @@ import (
 	"github.com/llravell/go-shortener/internal/usecase"
 	"github.com/llravell/go-shortener/logger"
 	"github.com/llravell/go-shortener/pkg/workerpool"
-	"github.com/pressly/goose/v3"
-	"github.com/rs/zerolog"
 )
 
 const urlDeleteWorkersAmount = 4
@@ -125,8 +126,9 @@ func main() {
 	app.New(
 		urlUseCase,
 		healthUseCase,
-		log,
+		&log,
 		app.Addr(cfg.Addr),
 		app.JWTSecret(cfg.JWTSecret),
+		app.IsDebug(cfg.AppEnv == "development"),
 	).Run()
 }

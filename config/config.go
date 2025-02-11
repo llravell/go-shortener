@@ -14,14 +14,17 @@ const (
 	_defaultJWTSecret       = "secret"
 )
 
+// Config конфигурация приложения.
 type Config struct {
 	Addr            string `env:"SERVER_ADDRESS"`
 	BaseAddr        string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	DatabaseDsn     string `env:"DATABASE_DSN"`
 	JWTSecret       string `env:"JWT_SECRET"`
+	AppEnv          string `env:"APP_ENV"`
 }
 
+// NewConfig создает новый конфиг, заполняет его значениями из переменных окружения и флагов.
 func NewConfig() (*Config, error) {
 	cfg := &Config{
 		Addr:            _defaultAddr,

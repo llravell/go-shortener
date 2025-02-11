@@ -1,5 +1,6 @@
 package entity
 
+// URL содержит данные о сокращенном урле.
 type URL struct {
 	UUID     string `json:"uuid"`
 	Short    string `json:"short_url"`
@@ -8,6 +9,7 @@ type URL struct {
 	Deleted  bool   `json:"is_deleted"`
 }
 
+// URLDeleteItem dto удаление урлов.
 type URLDeleteItem struct {
 	UserUUID string
 	Hashes   []string

@@ -5,17 +5,21 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/rs/zerolog"
+
 	"github.com/llravell/go-shortener/internal/entity"
 	"github.com/llravell/go-shortener/internal/repo"
-	"github.com/rs/zerolog"
 )
 
+// ErrURLDuplicate ошибка создания дубля.
 var ErrURLDuplicate = errors.New("duplicate url")
 
+// URLDeleteWorkerPool пул, обрабатывающий удаление урлов.
 type URLDeleteWorkerPool interface {
 	QueueWork(w *URLDeleteWork) error
 }
 
+// URLDeleteWork задача удаления урлов.
 type URLDeleteWork struct {
 	repo     URLRepo
 	log      *zerolog.Logger
@@ -23,6 +27,7 @@ type URLDeleteWork struct {
 	Hashes   []string
 }
 
+// Do удаляет урлы пользователя.
 func (w *URLDeleteWork) Do(ctx context.Context) {
 	err := w.repo.DeleteMultipleURLs(ctx, w.UserUUID, w.Hashes)
 	if err != nil {
@@ -39,6 +44,7 @@ func (w *URLDeleteWork) Do(ctx context.Context) {
 		Msg("delete urls successeded")
 }
 
+// URLUseCase юзкейс базовых операций с урлами.
 type URLUseCase struct {
 	repo            URLRepo
 	wp              URLDeleteWorkerPool
@@ -47,6 +53,7 @@ type URLUseCase struct {
 	baseRedirectURL string
 }
 
+// NewURLUseCase создает юзкейс.
 func NewURLUseCase(
 	repo URLRepo,
 	wp URLDeleteWorkerPool,
@@ -63,6 +70,7 @@ func NewURLUseCase(
 	}
 }
 
+// SaveURL сохраняет урл.
 func (uc *URLUseCase) SaveURL(ctx context.Context, url string, userUUID string) (*entity.URL, error) {
 	hash, err := uc.gen.Generate()
 	if err != nil {
@@ -79,6 +87,7 @@ func (uc *URLUseCase) SaveURL(ctx context.Context, url string, userUUID string) 
 	return storedURL, err
 }
 
+// SaveURLMultiple сохраняет несколько урлов.
 func (uc *URLUseCase) SaveURLMultiple(ctx context.Context, urls []string, userUUID string) ([]*entity.URL, error) {
 	urlObjs := make([]*entity.URL, 0, len(urls))
 
@@ -98,18 +107,22 @@ func (uc *URLUseCase) SaveURLMultiple(ctx context.Context, urls []string, userUU
 	return urlObjs, uc.repo.StoreMultipleURLs(ctx, urlObjs)
 }
 
+// ResolveURL определяет полный урл по хэшу.
 func (uc *URLUseCase) ResolveURL(ctx context.Context, hash string) (*entity.URL, error) {
 	return uc.repo.GetURL(ctx, hash)
 }
 
+// GetUserURLS находит все урлы пользователя.
 func (uc *URLUseCase) GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error) {
 	return uc.repo.GetUserURLS(ctx, userUUID)
 }
 
+// BuildRedirectURL формирует урл для редиректа.
 func (uc *URLUseCase) BuildRedirectURL(url *entity.URL) string {
 	return fmt.Sprintf("%s/%s", uc.baseRedirectURL, url.Short)
 }
 
+// QueueDelete отправляет задачу на удаление урлов в пул воркеров.
 func (uc *URLUseCase) QueueDelete(deleteItem *entity.URLDeleteItem) error {
 	deleteWork := &URLDeleteWork{
 		repo:     uc.repo,

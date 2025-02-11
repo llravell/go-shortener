@@ -8,6 +8,7 @@ import (
 
 type decompressor struct{}
 
+// Handler обработчик мидлвары.
 func (d decompressor) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentEncoding := r.Header.Get("Content-Encoding")
@@ -29,6 +30,7 @@ func (d decompressor) Handler(next http.Handler) http.Handler {
 	})
 }
 
+// DecompressMiddleware мидлвара разархивации данных http запроса.
 func DecompressMiddleware() func(next http.Handler) http.Handler {
 	d := decompressor{}
 

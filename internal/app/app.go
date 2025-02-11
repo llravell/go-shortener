@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/rs/zerolog"
+
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
-	"github.com/rs/zerolog"
 )
 
 func startServer(addr string, handler http.Handler) error {
@@ -25,33 +27,46 @@ func startServer(addr string, handler http.Handler) error {
 	return server.ListenAndServe()
 }
 
+// Option дополнительная опция приложения.
 type Option func(app *App)
 
+// App приложение.
 type App struct {
 	urlUseCase    *usecase.URLUseCase
 	healthUseCase *usecase.HealthUseCase
 	router        chi.Router
-	log           zerolog.Logger
+	log           *zerolog.Logger
 	addr          string
 	jwtSecret     string
+	isDebug       bool
 }
 
+// Addr устанавливает адрес, на котором будет запускаться http сервер.
 func Addr(addr string) Option {
 	return func(app *App) {
 		app.addr = addr
 	}
 }
 
+// JWTSecret устанавливает строку, которая будет использоваться для генерации JWT.
 func JWTSecret(secret string) Option {
 	return func(app *App) {
 		app.jwtSecret = secret
 	}
 }
 
+// IsDebug устанавливает режим, в котором запущенно приложение.
+func IsDebug(isDebug bool) Option {
+	return func(app *App) {
+		app.isDebug = isDebug
+	}
+}
+
+// New создает инстанс приложения.
 func New(
 	urlUseCase *usecase.URLUseCase,
 	healthUseCase *usecase.HealthUseCase,
-	log zerolog.Logger,
+	log *zerolog.Logger,
 	opts ...Option,
 ) *App {
 	app := &App{
@@ -68,6 +83,7 @@ func New(
 	return app
 }
 
+// Run инициализирует роуты и запускает http сервер.
 func (app *App) Run() {
 	auth := middleware.NewAuth(app.jwtSecret, app.log)
 	healthRoutes := rest.NewHealthRoutes(app.healthUseCase, app.log)
@@ -76,6 +92,10 @@ func (app *App) Run() {
 	app.router.Use(middleware.LoggerMiddleware(app.log))
 	healthRoutes.Apply(app.router)
 	urlRoutes.Apply(app.router)
+
+	if app.isDebug {
+		app.router.Mount("/debug", chiMiddleware.Profiler())
+	}
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)

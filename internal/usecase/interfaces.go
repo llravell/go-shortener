@@ -6,8 +6,9 @@ import (
 	"github.com/llravell/go-shortener/internal/entity"
 )
 
+// Интерфейсы сторонних зависимостей.
+//
 //go:generate ../../bin/mockgen -destination=../mocks/mock_usecase.go -package=mocks . URLRepo,HealthRepo,HashGenerator
-
 type (
 	URLRepo interface {
 		Store(ctx context.Context, url *entity.URL) (*entity.URL, error)
