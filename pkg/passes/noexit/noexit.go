@@ -25,13 +25,13 @@ func getOSExitCallPos(list []ast.Stmt) token.Pos {
 			continue
 		}
 
-		s, ok := call.Fun.(*ast.SelectorExpr)
+		selector, ok := call.Fun.(*ast.SelectorExpr)
 		if !ok {
 			continue
 		}
 
-		if s.Sel.Name == "Exit" {
-			ident, ok := s.X.(*ast.Ident)
+		if selector.Sel.Name == "Exit" {
+			ident, ok := selector.X.(*ast.Ident)
 
 			if ok && ident.Name == "os" {
 				return ident.NamePos
@@ -63,5 +63,6 @@ func run(pass *analysis.Pass) (interface{}, error) {
 		})
 	}
 
+	//nolint: nilnil
 	return nil, nil
 }
