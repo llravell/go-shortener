@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"github.com/llravell/go-shortener/pkg/passes/noexit"
 	"github.com/timakin/bodyclose/passes/bodyclose"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
@@ -54,6 +55,7 @@ func main() {
 		unmarshal.Analyzer,
 		unreachable.Analyzer,
 		bodyclose.Analyzer,
+		noexit.Analyzer,
 	}
 
 	staticcheckIncludes := map[string]bool{
