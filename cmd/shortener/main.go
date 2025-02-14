@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"embed"
+	"fmt"
 	"log"
 	"os"
 
@@ -23,6 +24,18 @@ const urlDeleteWorkersAmount = 4
 
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
+
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
+)
+
+func printBuildInfo() {
+	fmt.Println("Build version: " + buildVersion)
+	fmt.Println("Build date: " + buildDate)
+	fmt.Println("Build commit: " + buildCommit)
+}
 
 func runMigrations(db *sql.DB) {
 	goose.SetBaseFS(embedMigrations)
@@ -66,6 +79,8 @@ func prepareMemoryURLRepo(
 
 //nolint:funlen
 func main() {
+	printBuildInfo()
+
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("config error: %s", err)

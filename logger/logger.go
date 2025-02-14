@@ -42,7 +42,7 @@ func Get() zerolog.Logger {
 
 		appEnv := os.Getenv("APP_ENV")
 		if appEnv != "development" {
-			logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFilePermissions)
+			logFile, err = os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, logFilePermissions)
 			if err != nil {
 				panic(err)
 			}
