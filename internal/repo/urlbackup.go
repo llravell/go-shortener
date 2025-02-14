@@ -74,7 +74,9 @@ func (u *URLBackup) Store(urls []*entity.URL) error {
 	wr := bufio.NewWriter(u.file)
 
 	for _, url := range urls {
-		data, err := json.Marshal(url)
+		var data []byte
+
+		data, err = json.Marshal(url)
 		if err != nil {
 			return err
 		}
