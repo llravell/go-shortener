@@ -7,6 +7,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+// Analyzer статический анализатор проверяющий прямой вызов os exit в main.
 var Analyzer = &analysis.Analyzer{
 	Name: "noexit",
 	Doc:  "check os exit call in main function",
