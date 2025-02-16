@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"embed"
-	"fmt"
 	"log"
 	"os"
 
@@ -32,21 +31,23 @@ var (
 )
 
 func printBuildInfo() {
-	fmt.Println("Build version: " + buildVersion)
-	fmt.Println("Build date: " + buildDate)
-	fmt.Println("Build commit: " + buildCommit)
+	log.Println("Build version: " + buildVersion)
+	log.Println("Build date: " + buildDate)
+	log.Println("Build commit: " + buildCommit)
 }
 
-func runMigrations(db *sql.DB) {
+func runMigrations(db *sql.DB) error {
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect("postgres"); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := goose.Up(db, "migrations"); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
 func prepareMemoryURLRepo(
@@ -95,7 +96,10 @@ func main() {
 		}
 		defer db.Close()
 
-		runMigrations(db)
+		err = runMigrations(db)
+		if err != nil {
+			log.Fatalf("migration running error: %s", err)
+		}
 	}
 
 	log := logger.Get()
