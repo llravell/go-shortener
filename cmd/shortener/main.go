@@ -24,16 +24,30 @@ const urlDeleteWorkersAmount = 4
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-func runMigrations(db *sql.DB) {
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
+)
+
+func printBuildInfo() {
+	log.Println("Build version: " + buildVersion)
+	log.Println("Build date: " + buildDate)
+	log.Println("Build commit: " + buildCommit)
+}
+
+func runMigrations(db *sql.DB) error {
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect("postgres"); err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := goose.Up(db, "migrations"); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
 func prepareMemoryURLRepo(
@@ -66,6 +80,8 @@ func prepareMemoryURLRepo(
 
 //nolint:funlen
 func main() {
+	printBuildInfo()
+
 	cfg, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("config error: %s", err)
@@ -80,7 +96,10 @@ func main() {
 		}
 		defer db.Close()
 
-		runMigrations(db)
+		err = runMigrations(db)
+		if err != nil {
+			log.Fatalf("migration running error: %s", err)
+		}
 	}
 
 	log := logger.Get()
