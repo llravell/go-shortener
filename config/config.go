@@ -22,6 +22,7 @@ type Config struct {
 	DatabaseDsn     string `env:"DATABASE_DSN"`
 	JWTSecret       string `env:"JWT_SECRET"`
 	AppEnv          string `env:"APP_ENV"`
+	HTTPSEnabled    bool   `env:"ENABLE_HTTPS"`
 }
 
 // NewConfig создает новый конфиг, заполняет его значениями из переменных окружения и флагов.
@@ -38,6 +39,7 @@ func NewConfig() (*Config, error) {
 	flag.StringVar(&cfg.BaseAddr, "b", _defaultBaseAddr, "Base address for redirect as host:port")
 	flag.StringVar(&cfg.FileStoragePath, "f", _defaultFileStoragePath, "File storage path")
 	flag.StringVar(&cfg.DatabaseDsn, "d", _defaultDatabaseDsn, "DB connect address")
+	flag.BoolVar(&cfg.HTTPSEnabled, "c", false, "Enable https")
 	flag.Parse()
 
 	return cfg, env.Parse(cfg)

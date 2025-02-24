@@ -25,9 +25,9 @@ const urlDeleteWorkersAmount = 4
 var embedMigrations embed.FS
 
 var (
-	buildVersion string = "N/A"
-	buildDate    string = "N/A"
-	buildCommit  string = "N/A"
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
 )
 
 func printBuildInfo() {
@@ -94,12 +94,14 @@ func main() {
 		if err != nil {
 			log.Fatalf("open db error: %s", err)
 		}
-		defer db.Close()
 
 		err = runMigrations(db)
 		if err != nil {
+			db.Close()
 			log.Fatalf("migration running error: %s", err)
 		}
+
+		defer db.Close()
 	}
 
 	log := logger.Get()

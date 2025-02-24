@@ -16,12 +16,16 @@ import (
 	"github.com/llravell/go-shortener/internal/usecase"
 )
 
-func startServer(addr string, handler http.Handler) error {
+func startServer(addr string, handler http.Handler, https bool) error {
 	server := http.Server{
 		Addr:         addr,
 		Handler:      handler,
 		ReadTimeout:  time.Minute,
 		WriteTimeout: time.Minute,
+	}
+
+	if https {
+		return server.ListenAndServeTLS("", "")
 	}
 
 	return server.ListenAndServe()
@@ -39,6 +43,7 @@ type App struct {
 	addr          string
 	jwtSecret     string
 	isDebug       bool
+	httpsEnabled  bool
 }
 
 // Addr устанавливает адрес, на котором будет запускаться http сервер.
@@ -59,6 +64,13 @@ func JWTSecret(secret string) Option {
 func IsDebug(isDebug bool) Option {
 	return func(app *App) {
 		app.isDebug = isDebug
+	}
+}
+
+// HTTPSEnabled запускает сервер по https.
+func HTTPSEnabled(enabled bool) Option {
+	return func(app *App) {
+		app.httpsEnabled = enabled
 	}
 }
 
@@ -102,7 +114,7 @@ func (app *App) Run() {
 
 	serverNotify := make(chan error, 1)
 	go func() {
-		serverNotify <- startServer(app.addr, app.router)
+		serverNotify <- startServer(app.addr, app.router, app.httpsEnabled)
 		close(serverNotify)
 	}()
 
