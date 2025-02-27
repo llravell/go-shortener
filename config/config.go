@@ -17,18 +17,18 @@ const (
 
 // Config конфигурация приложения.
 type Config struct {
-	Addr            string `env:"SERVER_ADDRESS"    josn:"server_address"`
-	BaseAddr        string `env:"BASE_URL"          josn:"base_url"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH" josn:"file_storage_path"`
-	DatabaseDsn     string `env:"DATABASE_DSN"      josn:"database_dsn"`
-	HTTPSEnabled    bool   `env:"ENABLE_HTTPS"      josn:"enable_https"`
-	JWTSecret       string `env:"JWT_SECRET"`
-	AppEnv          string `env:"APP_ENV"`
-	Meta            configMeta
+	Addr            string     `env:"SERVER_ADDRESS"    json:"server_address"`
+	BaseAddr        string     `env:"BASE_URL"          json:"base_url"`
+	FileStoragePath string     `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
+	DatabaseDsn     string     `env:"DATABASE_DSN"      json:"database_dsn"`
+	HTTPSEnabled    bool       `env:"ENABLE_HTTPS"      json:"enable_https"`
+	JWTSecret       string     `env:"JWT_SECRET"        json:"-"`
+	AppEnv          string     `env:"APP_ENV"           json:"-"`
+	Meta            configMeta `json:"-"`
 }
 
 type configMeta struct {
-	SRC string `env:"CONFIG"`
+	SRC string `env:"CONFIG" json:"-"`
 }
 
 func newDefaultConfig() *Config {
@@ -55,7 +55,7 @@ func NewConfig() (*Config, error) {
 
 	cfgFromFile := newDefaultConfig()
 	if err := cfgFromFile.parseFromFile(); err != nil {
-		return cfg, nil
+		return nil, err
 	}
 
 	cfgFromFile.merge(cfg)
