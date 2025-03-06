@@ -153,6 +153,7 @@ func main() {
 		&log,
 		app.Addr(cfg.Addr),
 		app.JWTSecret(cfg.JWTSecret),
+		app.TrustedSubnet(cfg.TrustedSubnet),
 		app.IsDebug(cfg.AppEnv == "development"),
 	).Run()
 }
