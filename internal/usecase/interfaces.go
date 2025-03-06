@@ -22,6 +22,11 @@ type (
 		PingContext(ctx context.Context) error
 	}
 
+	StatsRepo interface {
+		GetURLsAmount(ctx context.Context) (int, error)
+		GetUsersAmount(ctx context.Context) (int, error)
+	}
+
 	HashGenerator interface {
 		Generate() (string, error)
 	}

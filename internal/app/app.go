@@ -38,6 +38,7 @@ type Option func(app *App)
 type App struct {
 	urlUseCase    *usecase.URLUseCase
 	healthUseCase *usecase.HealthUseCase
+	statsUseCase  *usecase.StatsUseCase
 	router        chi.Router
 	log           *zerolog.Logger
 	addr          string
@@ -78,12 +79,14 @@ func HTTPSEnabled(enabled bool) Option {
 func New(
 	urlUseCase *usecase.URLUseCase,
 	healthUseCase *usecase.HealthUseCase,
+	statsUseCase *usecase.StatsUseCase,
 	log *zerolog.Logger,
 	opts ...Option,
 ) *App {
 	app := &App{
 		urlUseCase:    urlUseCase,
 		healthUseCase: healthUseCase,
+		statsUseCase:  statsUseCase,
 		log:           log,
 		router:        chi.NewRouter(),
 	}
@@ -99,11 +102,16 @@ func New(
 func (app *App) Run() {
 	auth := middleware.NewAuth(app.jwtSecret, app.log)
 	healthRoutes := rest.NewHealthRoutes(app.healthUseCase, app.log)
+	statsRoutes := rest.NewStatsRoutes(app.statsUseCase, app.log)
 	urlRoutes := rest.NewURLRoutes(app.urlUseCase, auth, app.log)
 
 	app.router.Use(middleware.LoggerMiddleware(app.log))
 	healthRoutes.Apply(app.router)
 	urlRoutes.Apply(app.router)
+
+	app.router.Route("/api/internal", func(r chi.Router) {
+		statsRoutes.Apply(r)
+	})
 
 	if app.isDebug {
 		app.router.Mount("/debug", chiMiddleware.Profiler())
