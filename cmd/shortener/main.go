@@ -124,6 +124,7 @@ func main() {
 		}()
 	}
 
+	statsRepo := repo.NewStatsDatabaseRepo(db)
 	urlDeleteWorkerPool := workerpool.New[*usecase.URLDeleteWork](urlDeleteWorkersAmount)
 
 	urlUseCase := usecase.NewURLUseCase(
@@ -134,6 +135,7 @@ func main() {
 		log,
 	)
 	healthUseCase := usecase.NewHealthUseCase(db)
+	statsUseCase := usecase.NewStatsUseCase(statsRepo)
 
 	urlDeleteWorkerPool.ProcessQueue()
 
@@ -147,9 +149,11 @@ func main() {
 	app.New(
 		urlUseCase,
 		healthUseCase,
+		statsUseCase,
 		&log,
 		app.Addr(cfg.Addr),
 		app.JWTSecret(cfg.JWTSecret),
+		app.TrustedSubnet(cfg.TrustedSubnet),
 		app.IsDebug(cfg.AppEnv == "development"),
 	).Run()
 }

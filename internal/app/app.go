@@ -1,6 +1,7 @@
 package app
 
 import (
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -38,12 +39,14 @@ type Option func(app *App)
 type App struct {
 	urlUseCase    *usecase.URLUseCase
 	healthUseCase *usecase.HealthUseCase
+	statsUseCase  *usecase.StatsUseCase
 	router        chi.Router
 	log           *zerolog.Logger
 	addr          string
 	jwtSecret     string
 	isDebug       bool
 	httpsEnabled  bool
+	trustedSubnet *net.IPNet
 }
 
 // Addr устанавливает адрес, на котором будет запускаться http сервер.
@@ -74,16 +77,34 @@ func HTTPSEnabled(enabled bool) Option {
 	}
 }
 
+// TrustedSubnet доверенная подсеть для доступа ко внутренним роутам.
+func TrustedSubnet(subnet string) Option {
+	return func(app *App) {
+		if len(subnet) == 0 {
+			return
+		}
+
+		_, trustedSubnet, err := net.ParseCIDR(subnet)
+		if err != nil {
+			return
+		}
+
+		app.trustedSubnet = trustedSubnet
+	}
+}
+
 // New создает инстанс приложения.
 func New(
 	urlUseCase *usecase.URLUseCase,
 	healthUseCase *usecase.HealthUseCase,
+	statsUseCase *usecase.StatsUseCase,
 	log *zerolog.Logger,
 	opts ...Option,
 ) *App {
 	app := &App{
 		urlUseCase:    urlUseCase,
 		healthUseCase: healthUseCase,
+		statsUseCase:  statsUseCase,
 		log:           log,
 		router:        chi.NewRouter(),
 	}
@@ -107,6 +128,15 @@ func (app *App) Run() {
 
 	if app.isDebug {
 		app.router.Mount("/debug", chiMiddleware.Profiler())
+	}
+
+	if app.trustedSubnet != nil {
+		statsRoutes := rest.NewStatsRoutes(app.statsUseCase, app.log)
+		app.router.Route("/api/internal", func(r chi.Router) {
+			r.Use(middleware.NetGuardMiddleware(app.trustedSubnet))
+
+			statsRoutes.Apply(r)
+		})
 	}
 
 	interrupt := make(chan os.Signal, 1)

@@ -8,7 +8,7 @@ import (
 
 // Интерфейсы сторонних зависимостей.
 //
-//go:generate ../../bin/mockgen -destination=../mocks/mock_usecase.go -package=mocks . URLRepo,HealthRepo,HashGenerator
+//go:generate ../../bin/mockgen -destination=../mocks/mock_usecase.go -package=mocks . URLRepo,HealthRepo,StatsRepo,HashGenerator
 type (
 	URLRepo interface {
 		Store(ctx context.Context, url *entity.URL) (*entity.URL, error)
@@ -20,6 +20,11 @@ type (
 
 	HealthRepo interface {
 		PingContext(ctx context.Context) error
+	}
+
+	StatsRepo interface {
+		GetURLsAmount(ctx context.Context) (int, error)
+		GetUsersAmount(ctx context.Context) (int, error)
 	}
 
 	HashGenerator interface {
