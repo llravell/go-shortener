@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package shortener;
+
+option go_package = "github.com/llravell/go-shortener/proto";
+
+message Empty {}
+
+message URL {
+  string original = 1;
+  string shorten = 2;
+}
+
+message ShortenURLRequest {
+  string url = 1;
+}
+
+message ShortenURLResponse {
+  string result = 1;
+  string error = 2;
+}
+
+message ShortenURLsRequest {
+  repeated string urls = 1;
+}
+
+message ShortenURLsResponse {
+  repeated URL results = 1;
+  string error = 2;
+}
+
+message ResolveURLRequest {
+  string url = 1;
+}
+
+message ResolveURLResponse {
+  string result = 1;
+  string error = 2;
+}
+
+message GetMyURLsResponse {
+  repeated URL urls = 1;
+  string error = 2;
+}
+
+message DelMyURLsRequest {
+  repeated string urls = 1;
+}
+
+message DelMyURLsResponse {
+  string error = 1;
+}
+
+service Shortener {
+  rpc ShortenURL(ShortenURLRequest) returns (ShortenURLResponse);
+  rpc ShortenURLs(ShortenURLsRequest) returns (ShortenURLsResponse);
+  rpc ResolveURL(ResolveURLRequest) returns (ResolveURLResponse);
+  rpc GetMyURLs(Empty) returns (GetMyURLsResponse);
+  rpc DelMyURLs(DelMyURLsRequest) returns (DelMyURLsResponse);
+}
