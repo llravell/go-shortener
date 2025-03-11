@@ -152,6 +152,7 @@ func main() {
 		statsUseCase,
 		&log,
 		app.Addr(cfg.Addr),
+		app.GRPCAddr(cfg.GRPCAddr),
 		app.JWTSecret(cfg.JWTSecret),
 		app.TrustedSubnet(cfg.TrustedSubnet),
 		app.IsDebug(cfg.AppEnv == "development"),

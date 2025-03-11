@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
 
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
@@ -43,6 +45,7 @@ type App struct {
 	router        chi.Router
 	log           *zerolog.Logger
 	addr          string
+	grpcAddr      string
 	jwtSecret     string
 	isDebug       bool
 	httpsEnabled  bool
@@ -53,6 +56,13 @@ type App struct {
 func Addr(addr string) Option {
 	return func(app *App) {
 		app.addr = addr
+	}
+}
+
+// GRPCAddr устанавливает адрес, на котором будет запускаться grpc сервер.
+func GRPCAddr(addr string) Option {
+	return func(app *App) {
+		app.grpcAddr = addr
 	}
 }
 
@@ -116,8 +126,8 @@ func New(
 	return app
 }
 
-// Run инициализирует роуты и запускает http сервер.
-func (app *App) Run() {
+// RunHTTP инициализирует роуты и запускает http сервер.
+func (app *App) RunHTTP() {
 	auth := middleware.NewAuth(app.jwtSecret, app.log)
 	healthRoutes := rest.NewHealthRoutes(app.healthUseCase, app.log)
 	urlRoutes := rest.NewURLRoutes(app.urlUseCase, auth, app.log)
@@ -150,12 +160,57 @@ func (app *App) Run() {
 
 	app.log.Info().
 		Str("addr", app.addr).
-		Msgf("starting shortener server on '%s'", app.addr)
+		Msgf("starting shortener http server on '%s'", app.addr)
 
 	select {
 	case s := <-interrupt:
 		app.log.Info().Str("signal", s.String()).Msg("interrupt")
 	case err := <-serverNotify:
-		app.log.Error().Err(err).Msg("shortener server has been closed")
+		app.log.Error().Err(err).Msg("shortener http server has been closed")
 	}
+}
+
+// RunGRPC запускает grpc сервер.
+func (app *App) RunGRPC() {
+	listen, err := net.Listen("tcp", app.grpcAddr)
+	if err != nil {
+		app.log.Error().Err(err).Msg("grpc server starting failed")
+
+		return
+	}
+
+	s := grpc.NewServer()
+
+	app.log.Info().
+		Str("grpcAddr", app.grpcAddr).
+		Msgf("starting shortener grpc server on '%s'", app.grpcAddr)
+
+	if err := s.Serve(listen); err != nil {
+		app.log.Error().Err(err).Msg("shortener grpc server has been closed")
+	}
+}
+
+// Run запускает приложение.
+func (app *App) Run() {
+	var wg sync.WaitGroup
+
+	if len(app.addr) > 0 {
+		wg.Add(1)
+
+		go func() {
+			app.RunHTTP()
+			wg.Done()
+		}()
+	}
+
+	if len(app.grpcAddr) > 0 {
+		wg.Add(1)
+
+		go func() {
+			app.RunGRPC()
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 }
