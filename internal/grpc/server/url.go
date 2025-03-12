@@ -22,6 +22,7 @@ type URLUseCase interface {
 	QueueDelete(item *entity.URLDeleteItem) error
 }
 
+// ShortenerServer grpc сервер для обработки урлов.
 type ShortenerServer struct {
 	pb.UnimplementedShortenerServer
 
@@ -29,6 +30,7 @@ type ShortenerServer struct {
 	log   *zerolog.Logger
 }
 
+// NewShortenerServer создает инстанс grpc сервера.
 func NewShortenerServer(
 	urlUC URLUseCase,
 	log *zerolog.Logger,
@@ -39,6 +41,7 @@ func NewShortenerServer(
 	}
 }
 
+// ShortenURL сокращает урл.
 func (s *ShortenerServer) ShortenURL(ctx context.Context, in *pb.ShortenURLRequest) (*pb.ShortenURLResponse, error) {
 	if len(in.Url) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "invalid url")
@@ -60,7 +63,7 @@ func (s *ShortenerServer) ShortenURL(ctx context.Context, in *pb.ShortenURLReque
 	return response, nil
 }
 
-// TODO: add url parsing
+// ResolveURL возвращает полный урл.
 func (s *ShortenerServer) ResolveURL(ctx context.Context, in *pb.ResolveURLRequest) (*pb.ResolveURLResponse, error) {
 	if len(in.Url) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "invalid url")

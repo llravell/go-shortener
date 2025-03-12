@@ -19,7 +19,7 @@ import (
 type URLUseCase interface {
 	SaveURL(ctx context.Context, url string, userUUID string) (*entity.URL, error)
 	SaveURLMultiple(ctx context.Context, urls []string, userUUID string) ([]*entity.URL, error)
-	ResolveURL(ctx context.Context, hash string) (*entity.URL, error)
+	ResolveURLByHash(ctx context.Context, hash string) (*entity.URL, error)
 	GetUserURLS(ctx context.Context, userUUID string) ([]*entity.URL, error)
 	BuildRedirectURL(url *entity.URL) string
 	QueueDelete(item *entity.URLDeleteItem) error
@@ -224,7 +224,7 @@ func (ur *URLRoutes) saveURLMultiple(w http.ResponseWriter, r *http.Request) {
 func (ur *URLRoutes) resolveURL(w http.ResponseWriter, r *http.Request) {
 	hash := r.PathValue(`id`)
 
-	url, err := ur.urlUC.ResolveURL(r.Context(), hash)
+	url, err := ur.urlUC.ResolveURLByHash(r.Context(), hash)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 
