@@ -63,6 +63,32 @@ func (s *ShortenerServer) ShortenURL(ctx context.Context, in *pb.ShortenURLReque
 	return response, nil
 }
 
+// ShortenURLs сокращает урлы.
+func (s *ShortenerServer) ShortenURLs(ctx context.Context, in *pb.ShortenURLsRequest) (*pb.ShortenURLsResponse, error) {
+	if len(in.Urls) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "empty urls")
+	}
+
+	urls, err := s.urlUC.SaveURLMultiple(ctx, in.Urls, "")
+	if err != nil {
+		return nil, status.Error(codes.Unknown, "urls saving failed")
+	}
+
+	results := make([]*pb.URL, 0, len(urls))
+	for _, url := range urls {
+		results = append(results, &pb.URL{
+			Original: url.Original,
+			Shorten:  s.urlUC.BuildRedirectURL(url),
+		})
+	}
+
+	response := &pb.ShortenURLsResponse{
+		Results: results,
+	}
+
+	return response, nil
+}
+
 // ResolveURL возвращает полный урл.
 func (s *ShortenerServer) ResolveURL(ctx context.Context, in *pb.ResolveURLRequest) (*pb.ResolveURLResponse, error) {
 	if len(in.Url) == 0 {
