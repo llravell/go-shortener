@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package echo;
+
+option go_package = "github.com/llravell/go-shortener/proto";
+
+message Message {
+  string text = 1;
+}
+
+service Echo {
+  rpc Send(Message) returns (Message);
+}
