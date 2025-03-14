@@ -43,17 +43,17 @@ func NewShortenerServer(
 
 // ShortenURL сокращает урл.
 func (s *ShortenerServer) ShortenURL(ctx context.Context, in *pb.ShortenURLRequest) (*pb.ShortenURLResponse, error) {
-	if len(in.Url) == 0 {
+	if len(in.GetUrl()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "invalid url")
 	}
 
-	url, err := s.urlUC.SaveURL(ctx, in.Url, "")
+	url, err := s.urlUC.SaveURL(ctx, in.GetUrl(), "")
 	if err != nil {
 		if errors.Is(err, usecase.ErrURLDuplicate) {
 			return nil, status.Error(codes.AlreadyExists, "url already exists")
-		} else {
-			return nil, status.Error(codes.Unknown, "url saving failed")
 		}
+
+		return nil, status.Error(codes.Unknown, "url saving failed")
 	}
 
 	response := &pb.ShortenURLResponse{
@@ -65,11 +65,11 @@ func (s *ShortenerServer) ShortenURL(ctx context.Context, in *pb.ShortenURLReque
 
 // ShortenURLs сокращает урлы.
 func (s *ShortenerServer) ShortenURLs(ctx context.Context, in *pb.ShortenURLsRequest) (*pb.ShortenURLsResponse, error) {
-	if len(in.Urls) == 0 {
+	if len(in.GetUrls()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "empty urls")
 	}
 
-	urls, err := s.urlUC.SaveURLMultiple(ctx, in.Urls, "")
+	urls, err := s.urlUC.SaveURLMultiple(ctx, in.GetUrls(), "")
 	if err != nil {
 		return nil, status.Error(codes.Unknown, "urls saving failed")
 	}
@@ -91,11 +91,11 @@ func (s *ShortenerServer) ShortenURLs(ctx context.Context, in *pb.ShortenURLsReq
 
 // ResolveURL возвращает полный урл.
 func (s *ShortenerServer) ResolveURL(ctx context.Context, in *pb.ResolveURLRequest) (*pb.ResolveURLResponse, error) {
-	if len(in.Url) == 0 {
+	if len(in.GetUrl()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "invalid url")
 	}
 
-	url, err := s.urlUC.ResolveURL(ctx, in.Url)
+	url, err := s.urlUC.ResolveURL(ctx, in.GetUrl())
 	if err != nil || url.Deleted {
 		return nil, status.Error(codes.NotFound, "url resolving failed")
 	}

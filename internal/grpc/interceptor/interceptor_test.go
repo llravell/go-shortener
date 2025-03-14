@@ -1,4 +1,4 @@
-package interceptors_test
+package interceptor_test
 
 import (
 	"context"
@@ -19,32 +19,31 @@ type echoServer struct {
 	pb.UnimplementedEchoServer
 }
 
-func (s *echoServer) Send(ctx context.Context, in *pb.Message) (*pb.Message, error) {
+func (s *echoServer) Send(_ context.Context, in *pb.Message) (*pb.Message, error) {
 	return in, nil
 }
 
 func startGRPCServer(
 	t *testing.T,
-	interceptor grpc.UnaryServerInterceptor,
+	unaryInterceptor grpc.UnaryServerInterceptor,
 ) (pb.EchoClient, func()) {
 	t.Helper()
 
 	echo := &echoServer{}
 
 	lis := bufconn.Listen(bufSize)
-	s := grpc.NewServer(grpc.UnaryInterceptor(interceptor))
-	pb.RegisterEchoServer(s, echo)
+	server := grpc.NewServer(grpc.UnaryInterceptor(unaryInterceptor))
+	pb.RegisterEchoServer(server, echo)
 
 	go func() {
-		if err := s.Serve(lis); err != nil {
+		if err := server.Serve(lis); err != nil {
 			log.Fatalf("Server exited with error: %v", err)
 		}
 	}()
 
-	conn, err := grpc.DialContext(
-		context.Background(),
-		"bufnet",
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
+	conn, err := grpc.NewClient(
+		"passthrough://bufnet",
+		grpc.WithContextDialer(func(_ context.Context, _ string) (net.Conn, error) {
 			return lis.Dial()
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -53,7 +52,7 @@ func startGRPCServer(
 
 	closeFn := func() {
 		conn.Close()
-		s.Stop()
+		server.Stop()
 	}
 
 	return pb.NewEchoClient(conn), closeFn

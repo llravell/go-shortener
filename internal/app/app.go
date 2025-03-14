@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 
-	"github.com/llravell/go-shortener/internal/grpc/interceptors"
+	"github.com/llravell/go-shortener/internal/grpc/interceptor"
 	grpcServer "github.com/llravell/go-shortener/internal/grpc/server"
 	pb "github.com/llravell/go-shortener/internal/proto"
 	"github.com/llravell/go-shortener/internal/rest"
@@ -186,18 +186,18 @@ func (app *App) RunGRPC() {
 	loggingOpts := []logging.Option{
 		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
 	}
-	loggingInterceptor := logging.UnaryServerInterceptor(interceptors.InterceptorLogger(app.log), loggingOpts...)
+	loggingInterceptor := logging.UnaryServerInterceptor(interceptor.Logger(app.log), loggingOpts...)
 
 	shortenerServer := grpcServer.NewShortenerServer(app.urlUseCase, app.log)
 
-	s := grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor))
-	pb.RegisterShortenerServer(s, shortenerServer)
+	server := grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor))
+	pb.RegisterShortenerServer(server, shortenerServer)
 
 	app.log.Info().
 		Str("grpcAddr", app.grpcAddr).
 		Msgf("starting shortener grpc server on '%s'", app.grpcAddr)
 
-	if err := s.Serve(listen); err != nil {
+	if err := server.Serve(listen); err != nil {
 		app.log.Error().Err(err).Msg("shortener grpc server has been closed")
 	}
 }

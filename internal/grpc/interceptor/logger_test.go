@@ -1,4 +1,4 @@
-package interceptors_test
+package interceptor_test
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
-	"github.com/llravell/go-shortener/internal/grpc/interceptors"
+	"github.com/llravell/go-shortener/internal/grpc/interceptor"
 	pb "github.com/llravell/go-shortener/internal/proto"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +24,7 @@ func TestLogger(t *testing.T) {
 
 	client, closeFn := startGRPCServer(
 		t,
-		logging.UnaryServerInterceptor(interceptors.InterceptorLogger(&logger), opts...),
+		logging.UnaryServerInterceptor(interceptor.Logger(&logger), opts...),
 	)
 	defer closeFn()
 

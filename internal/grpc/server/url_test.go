@@ -43,19 +43,18 @@ func startGRPCServer(
 	shortenerServer := server.NewShortenerServer(urlUseCase, &logger)
 
 	lis := bufconn.Listen(bufSize)
-	s := grpc.NewServer()
-	pb.RegisterShortenerServer(s, shortenerServer)
+	server := grpc.NewServer()
+	pb.RegisterShortenerServer(server, shortenerServer)
 
 	go func() {
-		if err := s.Serve(lis); err != nil {
+		if err := server.Serve(lis); err != nil {
 			log.Fatalf("Server exited with error: %v", err)
 		}
 	}()
 
-	conn, err := grpc.DialContext(
-		context.Background(),
-		"bufnet",
-		grpc.WithContextDialer(func(ctx context.Context, s string) (net.Conn, error) {
+	conn, err := grpc.NewClient(
+		"passthrough://bufnet",
+		grpc.WithContextDialer(func(_ context.Context, _ string) (net.Conn, error) {
 			return lis.Dial()
 		}),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -64,7 +63,7 @@ func startGRPCServer(
 
 	closeFn := func() {
 		conn.Close()
-		s.Stop()
+		server.Stop()
 	}
 
 	return pb.NewShortenerClient(conn), closeFn
@@ -132,7 +131,7 @@ func TestShortenerServer_ShortenURL(t *testing.T) {
 				assert.Equal(t, tc.errorCode, status.Code(err))
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.result, resp.Result)
+				assert.Equal(t, tc.result, resp.GetResult())
 			}
 		})
 	}
@@ -199,7 +198,7 @@ func TestShortenerServer_ShortenURLs(t *testing.T) {
 				assert.Equal(t, tc.errorCode, status.Code(err))
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.results, resp.Results)
+				assert.Equal(t, tc.results, resp.GetResults())
 			}
 		})
 	}
@@ -250,7 +249,7 @@ func TestShortenerServer_ResolveURL(t *testing.T) {
 				assert.Equal(t, tc.errorCode, status.Code(err))
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tc.result, resp.Result)
+				assert.Equal(t, tc.result, resp.GetResult())
 			}
 		})
 	}
