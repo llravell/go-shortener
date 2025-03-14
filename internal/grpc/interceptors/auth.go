@@ -14,15 +14,17 @@ import (
 
 // Auth предоставляет интерсепторы для работы с авторизацией.
 type Auth struct {
-	secret []byte
-	log    *zerolog.Logger
+	secret           []byte
+	protectedMethods map[string]bool
+	log              *zerolog.Logger
 }
 
 // NewAuth конфигурирует интерсепторы авторизации.
-func NewAuth(secretKey string, log *zerolog.Logger) *Auth {
+func NewAuth(secretKey string, protectedMethods map[string]bool, log *zerolog.Logger) *Auth {
 	return &Auth{
-		secret: []byte(secretKey),
-		log:    log,
+		secret:           []byte(secretKey),
+		protectedMethods: protectedMethods,
+		log:              log,
 	}
 }
 
@@ -101,6 +103,10 @@ func (auth *Auth) CheckJWTInterceptor(
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler,
 ) (any, error) {
+	if !auth.protectedMethods[info.FullMethod] {
+		return handler(ctx, req)
+	}
+
 	userUUID := auth.getUserUUIDFromContext(ctx)
 	if len(userUUID) == 0 {
 		return nil, status.Error(codes.Unauthenticated, "invalid auth token")

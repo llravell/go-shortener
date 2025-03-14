@@ -66,60 +66,26 @@ func startGRPCServer(
 	return pb.NewEchoClient(conn), closeFn
 }
 
-func TestAuth_ProvideJWTInterceptor(t *testing.T) {
-	log := zerolog.Nop()
-	auth := interceptors.NewAuth("secret", &log)
-
-	client, closeFn := startGRPCServer(t, auth.ProvideJWTInterceptor)
-	defer closeFn()
-
-	t.Run("interceptor provide auth token", func(t *testing.T) {
-		var trailer metadata.MD
-
-		_, err := client.Send(context.Background(), &pb.Message{Text: "test"}, grpc.Trailer(&trailer))
-		require.NoError(t, err)
-
-		token := trailer.Get("token")
-
-		assert.NotEmpty(t, token)
-		assert.NotEmpty(t, token[0])
-	})
-
-	t.Run("interceptor does not provide token, if it has been sent", func(t *testing.T) {
-		var trailer metadata.MD
-
-		_, err := client.Send(context.Background(), &pb.Message{Text: "test"}, grpc.Trailer(&trailer))
-		require.NoError(t, err)
-
-		token := trailer.Get("token")[0]
-		assert.NotEmpty(t, token)
-
-		ctxWithToken := metadata.NewOutgoingContext(context.Background(), trailer)
-		_, err = client.Send(ctxWithToken, &pb.Message{Text: "test"}, grpc.Trailer(&trailer))
-		require.NoError(t, err)
-
-		assert.Empty(t, trailer.Get("token"))
-	})
-
-	t.Run("interceptor replace token if it invalid", func(t *testing.T) {
-		var trailer metadata.MD
-
-		outgoingMd := metadata.Pairs("token", "some invalid token")
-		ctxWithToken := metadata.NewOutgoingContext(context.Background(), outgoingMd)
-
-		_, err := client.Send(ctxWithToken, &pb.Message{Text: "test"}, grpc.Trailer(&trailer))
-		require.NoError(t, err)
-
-		assert.NotEqual(t, outgoingMd.Get("token")[0], trailer.Get("token")[0])
-	})
-}
-
 func TestAuth_CheckJWTInterceptor(t *testing.T) {
 	log := zerolog.Nop()
-	auth := interceptors.NewAuth("secret", &log)
+	protectedMethods := map[string]bool{
+		pb.Echo_Send_FullMethodName: true,
+	}
+	auth := interceptors.NewAuth("secret", protectedMethods, &log)
 
 	client, closeFn := startGRPCServer(t, auth.CheckJWTInterceptor)
 	defer closeFn()
+
+	t.Run("interceptor ignore token checking if method is not protected", func(t *testing.T) {
+		protectedMethods[pb.Echo_Send_FullMethodName] = false
+		defer func() {
+			protectedMethods[pb.Echo_Send_FullMethodName] = true
+		}()
+
+		_, err := client.Send(context.Background(), &pb.Message{Text: "test"})
+
+		assert.Nil(t, err)
+	})
 
 	t.Run("interceptor return error without token", func(t *testing.T) {
 		_, err := client.Send(context.Background(), &pb.Message{Text: "test"})

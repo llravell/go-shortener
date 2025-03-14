@@ -11,9 +11,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 
+	"github.com/llravell/go-shortener/internal/grpc/interceptors"
+	grpcServer "github.com/llravell/go-shortener/internal/grpc/server"
+	pb "github.com/llravell/go-shortener/internal/proto"
 	"github.com/llravell/go-shortener/internal/rest"
 	"github.com/llravell/go-shortener/internal/rest/middleware"
 	"github.com/llravell/go-shortener/internal/usecase"
@@ -179,7 +183,15 @@ func (app *App) RunGRPC() {
 		return
 	}
 
-	s := grpc.NewServer()
+	loggingOpts := []logging.Option{
+		logging.WithLogOnEvents(logging.StartCall, logging.FinishCall),
+	}
+	loggingInterceptor := logging.UnaryServerInterceptor(interceptors.InterceptorLogger(app.log), loggingOpts...)
+
+	shortenerServer := grpcServer.NewShortenerServer(app.urlUseCase, app.log)
+
+	s := grpc.NewServer(grpc.UnaryInterceptor(loggingInterceptor))
+	pb.RegisterShortenerServer(s, shortenerServer)
 
 	app.log.Info().
 		Str("grpcAddr", app.grpcAddr).
