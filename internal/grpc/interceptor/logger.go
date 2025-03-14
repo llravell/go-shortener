@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Logger создает логгер для интерсептора логгирования.
 func Logger(log *zerolog.Logger) logging.Logger {
 	return logging.LoggerFunc(func(_ context.Context, lvl logging.Level, msg string, fields ...any) {
 		log := log.With().Fields(fields).Logger()
