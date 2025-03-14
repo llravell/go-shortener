@@ -10,6 +10,7 @@ import (
 
 const (
 	_defaultAddr            = ":8080"
+	_defaultGRPCAddr        = ":3200"
 	_defaultBaseAddr        = "http://localhost:8080"
 	_defaultFileStoragePath = "./urls.backup"
 	_defaultJWTSecret       = "secret"
@@ -18,9 +19,11 @@ const (
 // Config конфигурация приложения.
 type Config struct {
 	Addr            string     `env:"SERVER_ADDRESS"    json:"server_address"`
+	GRPCAddr        string     `env:"GRPC_ADDRESS"      json:"grpc_address"`
 	BaseAddr        string     `env:"BASE_URL"          json:"base_url"`
 	FileStoragePath string     `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
 	DatabaseDsn     string     `env:"DATABASE_DSN"      json:"database_dsn"`
+	TrustedSubnet   string     `env:"TRUSTED_SUBNET"    json:"trusted_subnet"`
 	HTTPSEnabled    bool       `env:"ENABLE_HTTPS"      json:"enable_https"`
 	JWTSecret       string     `env:"JWT_SECRET"        json:"-"`
 	AppEnv          string     `env:"APP_ENV"           json:"-"`
@@ -34,6 +37,7 @@ type configMeta struct {
 func newDefaultConfig() *Config {
 	return &Config{
 		Addr:            _defaultAddr,
+		GRPCAddr:        _defaultGRPCAddr,
 		BaseAddr:        _defaultBaseAddr,
 		FileStoragePath: _defaultFileStoragePath,
 		JWTSecret:       _defaultJWTSecret,
@@ -67,9 +71,11 @@ func (cfg *Config) parseFromFlags() {
 	flag.StringVar(&cfg.Meta.SRC, "config", "", "Path to config file")
 
 	flag.StringVar(&cfg.Addr, "a", _defaultAddr, "Server address as host:port")
+	flag.StringVar(&cfg.GRPCAddr, "g", _defaultGRPCAddr, "GRPC address as host:port")
 	flag.StringVar(&cfg.BaseAddr, "b", _defaultBaseAddr, "Base address for redirect as host:port")
 	flag.StringVar(&cfg.FileStoragePath, "f", _defaultFileStoragePath, "File storage path")
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "DB connect address")
+	flag.StringVar(&cfg.TrustedSubnet, "t", "", "Trusted subnet for /api/internal/ routes")
 	flag.BoolVar(&cfg.HTTPSEnabled, "s", false, "Enable https")
 	flag.Parse()
 }
@@ -87,9 +93,14 @@ func (cfg *Config) parseFromFile() error {
 	return json.Unmarshal(buf, cfg)
 }
 
+//nolint:cyclop
 func (cfg *Config) merge(target *Config) {
 	if len(target.Addr) != 0 {
 		cfg.Addr = target.Addr
+	}
+
+	if len(target.GRPCAddr) != 0 {
+		cfg.GRPCAddr = target.GRPCAddr
 	}
 
 	if len(target.BaseAddr) != 0 {
@@ -102,6 +113,10 @@ func (cfg *Config) merge(target *Config) {
 
 	if len(target.DatabaseDsn) != 0 {
 		cfg.DatabaseDsn = target.DatabaseDsn
+	}
+
+	if len(target.TrustedSubnet) != 0 {
+		cfg.TrustedSubnet = target.TrustedSubnet
 	}
 
 	if target.HTTPSEnabled {

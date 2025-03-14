@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/rs/zerolog"
 
@@ -13,6 +15,9 @@ import (
 
 // ErrURLDuplicate ошибка создания дубля.
 var ErrURLDuplicate = errors.New("duplicate url")
+
+// ErrURLInvalid ошибка получения некорректного урла.
+var ErrURLInvalid = errors.New("invalid url")
 
 // URLDeleteWorkerPool пул, обрабатывающий удаление урлов.
 type URLDeleteWorkerPool interface {
@@ -107,8 +112,28 @@ func (uc *URLUseCase) SaveURLMultiple(ctx context.Context, urls []string, userUU
 	return urlObjs, uc.repo.StoreMultipleURLs(ctx, urlObjs)
 }
 
-// ResolveURL определяет полный урл по хэшу.
-func (uc *URLUseCase) ResolveURL(ctx context.Context, hash string) (*entity.URL, error) {
+// ResolveURL определяет полный урл по сокращенному.
+func (uc *URLUseCase) ResolveURL(ctx context.Context, shortenURL string) (*entity.URL, error) {
+	baseURLObj, err := url.Parse(uc.baseRedirectURL)
+	if err != nil {
+		return nil, err
+	}
+
+	shortenURLObj, err := url.Parse(shortenURL)
+	if err != nil {
+		return nil, err
+	}
+
+	if baseURLObj.Scheme != shortenURLObj.Scheme ||
+		baseURLObj.Host != shortenURLObj.Host {
+		return nil, ErrURLInvalid
+	}
+
+	return uc.ResolveURLByHash(ctx, strings.TrimPrefix(shortenURLObj.Path, "/"))
+}
+
+// ResolveURLByHash определяет полный урл по хэшу.
+func (uc *URLUseCase) ResolveURLByHash(ctx context.Context, hash string) (*entity.URL, error) {
 	return uc.repo.GetURL(ctx, hash)
 }
 
